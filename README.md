@@ -22,16 +22,27 @@ allowance being nested inside a parent's.
   flag, fee paid by the spender account (HIP-336).
 - Account bootstrap (treasury + per-agent spender accounts + the audit topic) runs in
   code on first use, funded from `HEDERA_OPERATOR_ID`/`_KEY`, and is idempotent — ids
-  and keys are persisted to `layers/policy/.state/hedera.json` (gitignored, plaintext
-  keys, local/demo use only) so a rerun never mints duplicate accounts or a duplicate
-  topic. Ids are logged loudly to stderr on creation; keys never are.
+  and keys are persisted to `<state dir>/hedera.json` (gitignored, plaintext keys,
+  local/demo use only) so a rerun never mints duplicate accounts or a duplicate topic.
+  Ids are logged loudly to stderr on creation; keys never are.
+  **`<state dir>` must survive a worktree reap (#16)**: a treasury minted inside a
+  linked worktree that later got `worktree:rm`'d took its allowance-owner key with it,
+  permanently — `grant_budget` had no live path until a fresh treasury was minted. So
+  `layers/policy/state.ts` resolves the directory as, in order: the `FLOAT_STATE_DIR`
+  env var if set; else the main checkout's own `layers/policy/.state/`, auto-detected
+  from *any* linked worktree with no hardcoded path (a worktree's `.git` is a file
+  pointing back at `<main checkout>/.git/worktrees/<name>`); else this checkout's own
+  `.state/`, with a loud warning that it will not survive a reap if this ever does turn
+  out to be a worktree. The resolved path is logged to stderr at startup either way.
 - `GRANT_SIGNER=operator|ledger` (env, default `operator`). `ledger` routes every grant
   through the C6 custody wrapper (`layers/custody/`, ticket #5) and returns
   `awaiting_device` until that wrapper exists and confirms — see
   `layers/policy/ledger-signer.ts` for the seam.
-- `DRY_RUN=1` (or unset with any write layer's creds missing — see `src/config.ts`)
-  stubs every Hedera write with a synthetic result and still writes the audit message
-  (to stderr, tagged `dry_run: true`, not to a real topic).
+- `DRY_RUN=1` (or `FLOAT_LIVE` unset — see `src/config.ts`) stubs every Hedera write
+  with a synthetic result and still writes the audit message (to stderr, tagged
+  `dry_run: true`, not to a real topic). Going live is an explicit opt-in only
+  (`DRY_RUN=0` or `FLOAT_LIVE=1`, #14) — never inferred from which env vars are set —
+  and the server logs its effective mode loudly at startup either way.
 - **Hedera chain limits** (fine at demo scale): 100 allowances per owner account, 20
   approvals per `AccountAllowanceApproveTransaction`.
 - Live end-to-end verification script (real testnet, re-runnable, idempotent):
