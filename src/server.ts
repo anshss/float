@@ -12,6 +12,7 @@ import { verifyLockfile } from './lockfile.js';
 import { InMemorySignalDigestStore, type SignalDigestStore } from '../layers/perception/signalDigest.js';
 import { compareMarkets, queryPosition, counterpartyRisk, spendHistory } from '../layers/perception/tools.js';
 import { readLockfile, validateDemoCore } from '../layers/perception/pin.js';
+import { grantBudget } from '../layers/policy/engine.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -147,10 +148,13 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     {
       title: 'Grant budget',
       description:
-        'Owner-only: grants a child agent a spending ceiling as an owner-signed HTS allowance. Stub in C1; implemented by C3.',
+        'Owner-only: grants a child agent a spending ceiling as an owner-signed HTS allowance ' +
+        '(HTS/HBAR allowances are strictly owner->spender; a spender cannot re-delegate). Ceilings ' +
+        'are enforced on-chain, the hierarchy (sum of child ceilings <= parent ceiling) is enforced ' +
+        'at grant time and committed to HCS — both auditable, never on-chain nesting. Implemented by C3.',
       inputSchema: { child_id: z.string(), ceiling: z.string(), scope: z.string() },
     },
-    async () => stub(),
+    async ({ child_id, ceiling, scope }) => toCallToolResult(await grantBudget(config, { childId: child_id, ceiling, scope })),
   );
 
   // pay(url, max) — C3/C4 stub.
