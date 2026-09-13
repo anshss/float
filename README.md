@@ -40,3 +40,13 @@ allowance being nested inside a parent's.
   bootstraps treasury/topic/child accounts, grants a budget, proves an over-ceiling
   spend is denied and logged, and proves a hierarchy-violating grant is refused before
   touching the chain.
+- `float_status()` reports the policy layer's **ground truth**, not env-var presence
+  (#11): it reads treasury/topic ids from `layers/policy/.state/hedera.json` (the
+  bootstrap's own persisted record) when `HEDERA_TREASURY_ID`/`HEDERA_TOPIC_ID` aren't
+  set in the environment — an explicit env value still wins, so an operator can point a
+  run at pre-existing accounts. The response's `hedera` field names the treasury and
+  topic ids directly (safe to paste into HashScan) and, outside DRY_RUN, reports each
+  agent's live on-chain allowance remaining via one Mirror Node call
+  (`layers/policy/mirror.ts`) — never a private key. `configured.hedera` in the same
+  response reflects this ground truth; `src/config.ts`'s own `configured.hedera` (used
+  internally to pick the DRY_RUN default) stays env-var-only and is untouched by this.
