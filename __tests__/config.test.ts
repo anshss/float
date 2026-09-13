@@ -28,6 +28,8 @@ describe('config', () => {
       PRIVY_APP_ID: 'a',
       PRIVY_APP_SECRET: 's',
       PRIVY_WALLET_ID: 'w',
+      PRIVY_WALLET_ADDRESS: '0x0000000000000000000000000000000000000001',
+      PRIVY_AUTHORIZATION_KEY: 'ak',
       LEDGER_CLI_BIN: '/usr/local/bin/ledger',
     });
     expect(config.configured.hedera).toBe(true);
@@ -74,6 +76,8 @@ describe('config', () => {
       PRIVY_APP_ID: 'a',
       PRIVY_APP_SECRET: 's',
       PRIVY_WALLET_ID: 'w',
+      PRIVY_WALLET_ADDRESS: '0x0000000000000000000000000000000000000001',
+      PRIVY_AUTHORIZATION_KEY: 'ak',
       LEDGER_CLI_BIN: '/usr/local/bin/ledger',
     });
     expect(config.configured.hedera).toBe(true);

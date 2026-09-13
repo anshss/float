@@ -11,13 +11,16 @@
     "test": "vitest run",
     "pin": "tsx --env-file=.env scripts/pin.ts",
     "demo:x402-rail-proof": "node demo/proofs/x402-rail-proof.mjs",
-    "demo:pay-live-verify": "tsx --env-file=.env layers/payments/live-verify.ts"
+    "demo:pay-live-verify": "tsx --env-file=.env layers/payments/live-verify.ts",
+    "proof:arc": "tsx --env-file=.env demo/proofs/arc-settlement-proof.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "@privy-io/node": "^0.34.0",
     "@x402/core": "^2.25.0",
     "@x402/hedera": "^2.25.0",
+    "viem": "^2.56.5",
     "zod": "^4.6.4"
   },
   "devDependencies": {

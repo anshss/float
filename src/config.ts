@@ -21,6 +21,13 @@ const envSchema = z.object({
   PRIVY_APP_ID: z.string().min(1).optional(),
   PRIVY_APP_SECRET: z.string().min(1).optional(),
   PRIVY_WALLET_ID: z.string().min(1).optional(),
+  PRIVY_WALLET_ADDRESS: z.string().min(1).optional(),
+  // Mandatory to sign from a server wallet; the public half is registered as
+  // a key quorum out of band (PRIVY_KEY_QUORUM_ID), never re-derived here.
+  PRIVY_AUTHORIZATION_KEY: z.string().min(1).optional(),
+  // Only needed by the one-time provisioning script (demo/proofs), never at
+  // call time -- signing uses PRIVY_AUTHORIZATION_KEY, not this id.
+  PRIVY_KEY_QUORUM_ID: z.string().min(1).optional(),
   LEDGER_CLI_BIN: z.string().min(1).optional(),
   FLOAT_CAP_DEFAULT_USD: z.coerce.number().positive().optional(),
   FLOAT_CAP_HOT_BALANCE_USD: z.coerce.number().positive().optional(),
@@ -91,7 +98,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
       parsed.HEDERA_TREASURY_KEY &&
       parsed.HEDERA_TOPIC_ID
     ),
-    privy: !!(parsed.PRIVY_APP_ID && parsed.PRIVY_APP_SECRET && parsed.PRIVY_WALLET_ID),
+    privy: !!(
+      parsed.PRIVY_APP_ID &&
+      parsed.PRIVY_APP_SECRET &&
+      parsed.PRIVY_WALLET_ID &&
+      parsed.PRIVY_WALLET_ADDRESS &&
+      parsed.PRIVY_AUTHORIZATION_KEY
+    ),
     ledger: !!parsed.LEDGER_CLI_BIN,
   };
 

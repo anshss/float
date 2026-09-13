@@ -15,6 +15,7 @@ import { readLockfile, validateDemoCore } from '../layers/perception/pin.js';
 import { grantBudget } from '../layers/policy/engine.js';
 import { getPolicyStatus } from '../layers/policy/status.js';
 import { pay as payTool } from '../layers/payments/pay.js';
+import { transferUsdc } from '../layers/settlement/transferUsdc.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -202,16 +203,17 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     async ({ url, max }) => toCallToolResult(await payTool({ url, max }, { config, signalStore, digestStore })),
   );
 
-  // transfer_usdc(to, amount, signal_ref) — C5 stub. Refuses without signal_ref.
+  // transfer_usdc(to, amount, signal_ref) — implemented by C5.
   server.registerTool(
     'transfer_usdc',
     {
       title: 'Transfer USDC',
       description:
-        'Transfers USDC on Arc, citing the signal_ref that grounded the decision. Refuses with no_signal_cited if signal_ref is missing or unknown. Stub in C1; implemented by C5.',
+        'Transfers USDC on Arc through a Privy server wallet, citing the signal_ref that grounded the decision. Refuses with no_signal_cited if signal_ref is missing or unknown, awaiting_device if the request exceeds the hot wallet\'s float, and provider_policy_denied if Privy\'s policy engine refuses the transfer.',
       inputSchema: { to: z.string(), amount: z.string(), signal_ref: z.string() },
     },
-    async () => stub(),
+    async ({ to, amount, signal_ref }) =>
+      toCallToolResult(await transferUsdc({ to, amount, signal_ref }, { config, signalStore, digestStore })),
   );
 
   // confirm_pending() — C6 stub. Device-press state; never bypasses.
