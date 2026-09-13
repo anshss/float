@@ -1,0 +1,83 @@
+--- step 1: start gated resource server (seller side) ---
+gated endpoint: http://127.0.0.1:65408/premium/counterparty-risk/0.0.10523774
+
+--- step 2: pay() — 402 -> policy check -> pay -> retry -> 200 ---
+[float-mcp/policy] wrote spend audit message to topic 0.0.10524028 (seq 9)
+pay() result: {
+  "ok": true,
+  "data": {
+    "url": "http://127.0.0.1:65408/premium/counterparty-risk/0.0.10523774",
+    "amountHbar": 0.0005,
+    "tx": "0.0.7162784@1789308510.038480917",
+    "network": "hedera:testnet",
+    "report": {
+      "ok": true,
+      "data": {
+        "address": "0.0.10523774",
+        "score": 100,
+        "evidenceRows": [],
+        "coverage": {
+          "totalRequested": 5,
+          "live": [
+            "aave-v3-ethereum",
+            "aave-v3-polygon",
+            "aave-v3-arbitrum",
+            "compound-v3-ethereum",
+            "compound-v3-arbitrum"
+          ],
+          "empty": [],
+          "dead": [
+            {
+              "slug": "aave-v3-ethereum",
+              "error": "bad indexers: {0x3b9ba748691f135b71582dc3292e5e3ed7e13341: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0x3e1536fc83cd5bed83a521a26034ff3e59c6a7c4: Unavailable(too far behind), 0x8bbe94c2894f76406568dfb44e905dac4b7df699: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xe13840a2e92e0cb17a246609b432d0fa2e418774: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xf92f430dd8567b0d466358c79594ab58d919a6d4: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1)}"
+            },
+            {
+              "slug": "aave-v3-polygon",
+              "error": "bad indexers: {0x2f09092aacd80196fc984908c5a9a7ab3ee4f1ce: Unavailable(too far behind), 0xf00f7157fa8fd0420b87956d46058a16b2f23adc: Unavailable(no status: indexer not available), 0xf92f430dd8567b0d466358c79594ab58d919a6d4: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1)}"
+            },
+            {
+              "slug": "aave-v3-arbitrum",
+              "error": "bad indexers: {0xdeb712db301285ed483ef9e02dd08a1980f273f1: Unavailable(no status: indexer not available), 0xe13840a2e92e0cb17a246609b432d0fa2e418774: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xf92f430dd8567b0d466358c79594ab58d919a6d4: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1)}"
+            },
+            {
+              "slug": "compound-v3-ethereum",
+              "error": "bad indexers: {0x2f09092aacd80196fc984908c5a9a7ab3ee4f1ce: Unavailable(too far behind), 0x326c584e0f0eab1f1f83c93cc6ae1acc0feba0bc: Unavailable(too far behind), 0x4e5c87772c29381bcabc58c3f182b6633b5a274a: Unavailable(too far behind), 0x6f9bb7e454f5b3eb2310343f0e99269dc2bb8a1d: Unavailable(too far behind), 0x8bbe94c2894f76406568dfb44e905dac4b7df699: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0x9da1017766bfeb2835db4f811516eea68996538b: Unavailable(too far behind), 0xe13840a2e92e0cb17a246609b432d0fa2e418774: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xf92f430dd8567b0d466358c79594ab58d919a6d4: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1)}"
+            },
+            {
+              "slug": "compound-v3-arbitrum",
+              "error": "bad indexers: {0x605d0b92cde1e110d5ae9123969097ea2489d1aa: Unavailable(too far behind), 0x7bb834017672b1135466661d8dd69c5dd0b3bf51: Unavailable(no status: indexer not available), 0x8bbe94c2894f76406568dfb44e905dac4b7df699: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xc9014686f6336ad558b539565d5dff840b339082: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1), 0xe13840a2e92e0cb17a246609b432d0fa2e418774: BadResponse(unattestable response: Store error: store error: Invalid character '.' at position 1)}"
+            }
+          ]
+        },
+        "signalRef": "sig_1_mtzw3f06"
+      },
+      "provenance": {
+        "source": "graph",
+        "queriedAt": "2026-09-13T14:08:41.142Z"
+      }
+    }
+  }
+}
+
+--- step 3: read the receipt back via spend_history ---
+  attempt 1: 1 entries, tx present: true
+
+--- step 4: over-budget pay() must be denied WITHOUT paying ---
+[float-mcp/policy] wrote denial audit message to topic 0.0.10524028 (seq 10)
+over-budget pay() result: {
+  "denied": true,
+  "reason": "ceiling_exceeded",
+  "detail": "pay 0.0005 HBAR would bring root spend to 0.001 HBAR, exceeding ceiling 1e-8 HBAR (already spent 0.0005 HBAR)"
+}
+
+live-verify: ALL STEPS PASSED
+
+--- independent confirmation (mirror node, checked separately from the script) ---
+Settlement tx 0.0.7162784-1789308510-038480917: result SUCCESS, CRYPTOTRANSFER.
+  0.0.10523774 (buyer)      -50000 tinybar
+  0.0.10524025 (our treasury/payTo) +50000 tinybar
+  0.0.7162784  (facilitator) -266022 tinybar (fee, facilitator-absorbed)
+  0.0.802      (network)     +266022 tinybar
+HCS audit topic 0.0.10524028: seq 9 = spend receipt for this tx, seq 10 = the
+over-budget denial from step 4. Both read via
+GET /api/v1/topics/0.0.10524028/messages.

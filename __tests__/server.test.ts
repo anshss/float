@@ -122,7 +122,6 @@ describe('float-mcp server (in-process MCP client)', () => {
   });
 
   const stubTools: Array<[string, Record<string, string>]> = [
-    ['pay', { url: 'https://example.com', max: '5' }],
     ['transfer_usdc', { to: '0xabc', amount: '1', signal_ref: 'sig_1' }],
   ];
 
@@ -131,6 +130,21 @@ describe('float-mcp server (in-process MCP client)', () => {
     const result = await client.callTool({ name, arguments: args });
     const body = parseTextResult(result);
     expect(body).toEqual({ denied: true, reason: 'deployment_unavailable', detail: 'not implemented' });
+  });
+
+  // pay() is implemented for real by C4 (see layers/payments/__tests__ for
+  // full coverage) — here we only check the "no operator key configured"
+  // seam still returns a structured denial through the live MCP protocol,
+  // never a thrown error.
+  it('pay() denies without a configured buyer key, never throws', async () => {
+    await connect(loadConfig({}));
+    const result = await client.callTool({ name: 'pay', arguments: { url: 'https://example.com', max: '5' } });
+    const body = parseTextResult(result);
+    expect(body).toEqual({
+      denied: true,
+      reason: 'deployment_unavailable',
+      detail: 'HEDERA_OPERATOR_ID/HEDERA_OPERATOR_KEY not configured — pay() has no buyer key to sign with',
+    });
   });
 
   // compare_markets, query_position, counterparty_risk, spend_history are

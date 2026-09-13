@@ -1,0 +1,26 @@
+== Step 1: GET /supported ==
+HTTP 200
+{"kinds":[{"x402Version":2,"scheme":"exact","network":"eip155:80002"},{"x402Version":2,"scheme":"exact","network":"solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1","extra":{"feePayer":"7B6Q2MvcJvNcy1A13wHmAzmmdo3L8DVriaXML7bvkojm"}},{"x402Version":2,"scheme":"exact","network":"hedera:testnet","extra":{"feePayer":"0.0.7162784"}}],"extensions":[],"signers":{"eip155:*":["0xDCF7D72C2eE049DE4269ac6AAf925F33efdA18de"],"solana:*":["7B6Q2MvcJvNcy1A13wHmAzmmdo3L8DVriaXML7bvkojm"],"hedera:*":["0.0.7162784"]}}
+feePayer from /supported: 0.0.7162784
+HBAR_ASSET_ID from @x402/hedera package: 0.0.0
+
+== Step 2: build + sign payment payload ==
+buyer balance before (tinybar): 4292107615
+
+== Step 3: POST /verify ==
+HTTP 200 {"isValid":true,"payer":"0.0.10523774"}
+
+== Step 4: POST /settle ==
+HTTP 200 {"success":true,"transaction":"0.0.7162784@1789308367.762112391","network":"hedera:testnet","payer":"0.0.10523774"}
+
+Settlement reported transaction id: 0.0.7162784@1789308367.762112391
+
+== Step 5: independent mirror-node confirmation ==
+Mirror node result: {"transactions":[{"batch_key":null,"bytes":null,"charged_tx_fee":266022,"consensus_timestamp":"1789308373.778360192","entity_id":null,"high_volume":false,"high_volume_pricing_multiplier":0,"max_fee":"100000000","max_custom_fees":[],"memo_base64":"","name":"CRYPTOTRANSFER","nft_transfers":[],"node":"0.0.8","nonce":0,"parent_consensus_timestamp":null,"result":"SUCCESS","scheduled":false,"staking_reward_transfers":[],"token_transfers":[],"transaction_hash":"kr1vQeujoELg1C7hQ1bvPQvMSqrbkTSTUXvu+eB0+8mROncz9bvyWFARzXNB6ajX","transaction_id":"0.0.7162784-1789308367-762112391","transfers":[{"account":"0.0.802","amount":266022,"is_approval":false},{"account":"0.0.7162784","amount":-266022,"is_approval":false},{"account":"0.0.8011510","amount":100000,"is_approval":false},{"account":"0.0.10523774","amount":-100000,"is_approval":false}],"valid_duration_seconds":"120","valid_start_timestamp":"1789308367.762112391"}]}
+
+buyer balance after (tinybar): 4292007615
+HBAR spent (tinybar): 100000 = 0.001 HBAR
+
+== Timing ==
+total wall-clock (supported->settle): 8173 ms
+verify+settle only: 2817 ms

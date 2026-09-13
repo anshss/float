@@ -26,7 +26,10 @@ import { loadState, saveState, type PolicyRecord } from './state.js';
 
 export const ROOT_AGENT_ID = 'root';
 
-function rootCeilingHbar(): number {
+/** Root's own ceiling (HBAR). Exported so the payments layer's `pay()` can
+ * check its own spend against the same number `grant_budget` enforces for
+ * children — one ceiling config, read from the same place either way. */
+export function rootCeilingHbar(): number {
   const raw = process.env.FLOAT_ROOT_CEILING_HBAR;
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 10;

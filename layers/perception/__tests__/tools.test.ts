@@ -264,12 +264,12 @@ describe('spendHistory', () => {
       config: loadConfig({ GRAPH_API_KEY: 'k', HEDERA_TOPIC_ID: '0.0.900001' }),
       fetchImpl: async () => ({ ok: true, status: 200, json: async () => fixture }) as Response,
     });
-    const result = await spendHistory({ agent_id: 'agent-1' }, deps);
+    const result = await spendHistory({ agent_id: 'root' }, deps);
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
-    const data = result.data as { entries: Array<{ agent_id: string }> };
-    expect(data.entries).toHaveLength(2);
-    expect(data.entries.every((e) => e.agent_id === 'agent-1')).toBe(true);
+    const data = result.data as { entries: Array<{ agent_id: string; tx?: string }> };
+    expect(data.entries).toHaveLength(1);
+    expect(data.entries[0]).toMatchObject({ agent_id: 'root', tx: '0.0.7162784@1789308510.038480917' });
     expect(result.provenance?.source).toBe('mirror_node');
   });
 });

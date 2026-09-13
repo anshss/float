@@ -13,6 +13,11 @@ const envSchema = z.object({
   HEDERA_TREASURY_KEY: z.string().min(1).optional(),
   HEDERA_TOPIC_ID: z.string().min(1).optional(),
   HEDERA_MIRROR_NODE_URL: z.string().min(1).optional(),
+  // --- C4: payments (x402 on Hedera via Blocky402) ---
+  BLOCKY402_API_BASE: z.string().min(1).optional(),
+  FLOAT_PAYTO_ID: z.string().min(1).optional(),
+  FLOAT_PAYMENTS_PORT: z.coerce.number().int().positive().optional(),
+  FLOAT_ROOT_CEILING_HBAR: z.coerce.number().positive().optional(),
   PRIVY_APP_ID: z.string().min(1).optional(),
   PRIVY_APP_SECRET: z.string().min(1).optional(),
   PRIVY_WALLET_ID: z.string().min(1).optional(),
