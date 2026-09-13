@@ -9,3 +9,8 @@ dist/
 # layer's bootstrap (layers/policy/state.ts). Never committed — keys live
 # here in plaintext for local/demo use only.
 layers/policy/.state/
+
+# Persisted custody pending-op/reserve bookkeeping (layers/custody/state.ts).
+# No key material, but keep it out of git for the same worktree-survival
+# reasons as the policy state above.
+layers/custody/.state/

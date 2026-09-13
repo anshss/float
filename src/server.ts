@@ -1,7 +1,6 @@
-// Float MCP server core: registers the full v1 tool surface. C1 implements
-// float_status for real; every other tool is a stub that returns a structured
-// denial so the surface is callable — and later tickets can wire real bodies
-// in place without touching call signatures.
+// Float MCP server core: registers the full v1 tool surface. All nine tools
+// now have real bodies (C1-C6); each still returns a structured denial
+// wherever its own layer can't complete the request, rather than throwing.
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -16,6 +15,7 @@ import { grantBudget } from '../layers/policy/engine.js';
 import { getPolicyStatus } from '../layers/policy/status.js';
 import { pay as payTool } from '../layers/payments/pay.js';
 import { transferUsdc } from '../layers/settlement/transferUsdc.js';
+import { reportPending } from '../layers/custody/pending.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -24,12 +24,6 @@ function toCallToolResult<T>(result: ToolResult<T>): CallToolResult {
   return {
     content: [{ type: 'text', text: JSON.stringify(result) }],
   };
-}
-
-const NOT_IMPLEMENTED = 'not implemented';
-
-function stub(): CallToolResult {
-  return toCallToolResult(denied('deployment_unavailable', NOT_IMPLEMENTED));
 }
 
 export type FloatServerDeps = {
@@ -216,15 +210,17 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
       toCallToolResult(await transferUsdc({ to, amount, signal_ref }, { config, signalStore, digestStore })),
   );
 
-  // confirm_pending() — C6 stub. Device-press state; never bypasses.
+  // confirm_pending() — implemented by C6. Reports device-press state for
+  // whatever ledger operation is in flight (a policy grant attestation or a
+  // treasury replenishment); never bypasses the device.
   server.registerTool(
     'confirm_pending',
     {
       title: 'Confirm pending',
       description:
-        'Confirms a pending treasury authorization once the physical Ledger button is pressed. Never bypasses the device. Stub in C1; implemented by C6.',
+        'Reports the state of whatever Ledger operation is currently in flight (a GRANT_SIGNER=ledger grant attestation, or an operator-run treasury replenishment): awaiting_device until the physical button is pressed, then the operation\'s own result. Never bypasses the device -- there is no path here that produces a result without an observed press.',
     },
-    async () => stub(),
+    async () => toCallToolResult(reportPending()),
   );
 
   return { server, config, signalStore, digestStore };

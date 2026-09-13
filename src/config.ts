@@ -37,6 +37,20 @@ const envSchema = z.object({
   // call time -- signing uses PRIVY_AUTHORIZATION_KEY, not this id.
   PRIVY_KEY_QUORUM_ID: z.string().min(1).optional(),
   LEDGER_CLI_BIN: z.string().min(1).optional(),
+  // --- C6: Ledger custody (treasury/float reserve model) ---
+  // Sepolia address the treasury press authorizes a movement TO. Earmarked,
+  // never derived — a missing value degrades every custody write to a
+  // structured denial rather than guessing a destination.
+  LEDGER_FUNDING_ADDRESS: z.string().min(1).optional(),
+  // BIP-32 path the on-device Ethereum app derives the treasury account
+  // from. Matches wallet-cli's own `ethereum-sepolia-1` label (first
+  // account, first address).
+  LEDGER_DERIVATION_PATH: z.string().min(1).optional(),
+  SEPOLIA_RPC_URL: z.string().min(1).optional(),
+  // Fixed USD amount a single confirmed press unlocks from the reserve
+  // tranche below -- a bookkeeping unit, not a price-oracle conversion of
+  // the (dust-sized) testnet ETH actually moved.
+  FLOAT_RESERVE_UNLOCK_USD: z.coerce.number().positive().optional(),
   FLOAT_CAP_DEFAULT_USD: z.coerce.number().positive().optional(),
   FLOAT_CAP_HOT_BALANCE_USD: z.coerce.number().positive().optional(),
   DRY_RUN: z
@@ -80,6 +94,9 @@ export type FloatConfig = {
   caps: {
     defaultUsd: number;
     hotBalanceUsd: number;
+    /** C6: the bookkeeping USD amount one confirmed Ledger press unlocks
+     * from a float's locked reserve tranche -- see `layers/custody/`. */
+    reserveUnlockUsd: number;
   };
   /** #17: real HBAR bootstrap funds new accounts with, kept low so a demo
    * run costs a fraction of an HBAR instead of several. See
@@ -107,6 +124,7 @@ const DEFAULT_HOT_BALANCE_CAP_USD = 200;
 // allowance, never out of the spender's own balance).
 const DEFAULT_TREASURY_INITIAL_HBAR = 0.5;
 const DEFAULT_AGENT_INITIAL_HBAR = 0.05;
+const DEFAULT_RESERVE_UNLOCK_USD = 50;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
   const parsed = envSchema.parse(env);
@@ -141,6 +159,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
     caps: {
       defaultUsd: parsed.FLOAT_CAP_DEFAULT_USD ?? DEFAULT_CAP_USD,
       hotBalanceUsd: parsed.FLOAT_CAP_HOT_BALANCE_USD ?? DEFAULT_HOT_BALANCE_CAP_USD,
+      reserveUnlockUsd: parsed.FLOAT_RESERVE_UNLOCK_USD ?? DEFAULT_RESERVE_UNLOCK_USD,
     },
     funding: {
       treasuryInitialHbar: parsed.FLOAT_TREASURY_INITIAL_HBAR ?? DEFAULT_TREASURY_INITIAL_HBAR,

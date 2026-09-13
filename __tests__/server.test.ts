@@ -4,6 +4,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFloatServer } from '../src/server.js';
 import { loadConfig } from '../src/config.js';
 import { loadState, resetStateForTests, saveState } from '../layers/policy/state.js';
+import { resetStateForTests as resetCustodyStateForTests } from '../layers/custody/state.js';
 
 const V1_TOOLS = [
   'float_status',
@@ -207,11 +208,12 @@ describe('float-mcp server (in-process MCP client)', () => {
     });
   });
 
-  it('confirm_pending() (no args) returns a structured denial', async () => {
+  it('confirm_pending() with nothing in flight reports idle, not a denial', async () => {
+    resetCustodyStateForTests();
     await connect();
     const result = await client.callTool({ name: 'confirm_pending', arguments: {} });
     const body = parseTextResult(result);
-    expect(body).toEqual({ denied: true, reason: 'deployment_unavailable', detail: 'not implemented' });
+    expect(body).toEqual({ ok: true, data: { pending: false } });
   });
 
   it('server boots and serves with zero env vars configured', async () => {

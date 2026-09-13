@@ -61,3 +61,76 @@ allowance being nested inside a parent's.
   (`layers/policy/mirror.ts`) — never a private key. `configured.hedera` in the same
   response reflects this ground truth; `src/config.ts`'s own `configured.hedera` (used
   internally to pick the DRY_RUN default) stays env-var-only and is untouched by this.
+
+## C6: Custody (Ledger Wallet CLI, treasury/float reserve model)
+
+`layers/custody/` treats the treasury as a real Ledger hardware wallet on Sepolia, and
+models each float's reserve as a locked tranche that only a physical device press can
+unlock.
+
+**Ledger's own Wallet CLI doesn't sign on testnets.** Its own skill file
+(`skills/wallet-cli/wallet-cli-usage/SKILL.md` in `LedgerHQ/agent-skills`), under a
+heading literally titled "Out of scope — say no, don't improvise", blocks `send`,
+`receive`, `operations` (write), and `swap execute` on testnets and L2s. `send
+--dry-run` doesn't exist on Sepolia either. That's the CLI's product policy, not a
+hardware or protocol limit, so signing here goes one layer below the CLI: npm
+describes wallet-cli itself as "Ledger Wallet CLI using Device Management Kit (USB)" —
+`@ledgerhq/hw-app-eth` + `@ledgerhq/hw-transport-node-hid` talk to that same USB
+transport directly. The newer `@ledgerhq/device-management-kit` +
+`@ledgerhq/device-signer-kit-ethereum` stack was tried first per the ticket's own
+suggestion; it was dropped for the older pair because its dependency tree threw
+`ERR_MODULE_NOT_FOUND` on a nested subpackage under Node's strict ESM resolver even for
+a version-matched install, while `hw-app-eth`/`hw-transport-node-hid` are CommonJS and
+resolve cleanly via `node:module`'s `createRequire` (see `layers/custody/ledgerSigner.ts`).
+
+- **Still uses `wallet-cli` for what genuinely works on Sepolia**: `account discover
+  ethereum:sepolia` and `balances`/`operations`, all read-only. Per Ledger's own docs:
+  *"Read-only commands (balances, operations, `earn yields`, `earn positions`) never
+  touch the device and are safe to run in CI or from an untrusted agent."*
+  `layers/custody/walletCli.ts` shells out to it with `--output json` and parses the
+  final streamed line. "Key Ring CLI" in the prize text is not a separate tool — it's
+  the `ring` subcommand family inside `wallet-cli` (LKRP protocol); this project uses
+  wallet-cli's own name throughout.
+- **The device press is real and un-bypassable.** It is enforced by the Ethereum app on
+  the device itself, not by Float: `signTransaction`/`signPersonalMessage`
+  (`layers/custody/ledgerSigner.ts`) block on the device's APDU response, which the app
+  does not return until a human approves or rejects on-screen. There is no code path
+  anywhere in this layer that produces a signature without that.
+- **No `send --dry-run` on Sepolia → our own refusal preview.** `layers/custody/txBuilder.ts`
+  builds the real EIP-1559 transaction (nonce, fee estimate, chain id) against Sepolia
+  via `viem`, and with no device configured (or `DRY_RUN`) `replenish.ts` returns that
+  exact preview as a structured `awaiting_device` denial — same product behaviour as a
+  dry-run preview, different mechanism, and it never touches the device.
+- **Signing doesn't block the tool call.** A physical press can take arbitrarily long,
+  so `layers/custody/pending.ts` returns `awaiting_device` immediately and keeps the
+  signing promise running in the background; `confirm_pending()` only ever reads that
+  persisted record back. It reports device state, it never bypasses it — there is no
+  path that returns a result without an observed press. This is shared by both things
+  that need a real press: a treasury replenishment, and (`GRANT_SIGNER=ledger`,
+  `layers/policy/ledger-signer.ts`) a policy-grant attestation. Hedera isn't one of the
+  networks the Ledger app can sign for (bitcoin/ethereum(+EVM)/solana only — Arc and
+  Hedera are out), so the ledger-signer press is a Clear-Signed attestation of the
+  grant's own terms, gating whether the Hedera-side allowance (signed by the treasury's
+  own Hedera key, exactly as the operator-signer path does) commits at all.
+- **The reserve model is bookkeeping, honestly.** No bridge is in scope. Each float
+  holds a locked reserve tranche (`FLOAT_CAP_HOT_BALANCE_USD`) that policy refuses to
+  release. A confirmed Ledger press authorizes a real, small Sepolia movement from the
+  treasury to `LEDGER_FUNDING_ADDRESS`; on that confirmation, `layers/custody/reserve.ts`
+  unlocks a fixed `FLOAT_RESERVE_UNLOCK_USD` from the tranche. The hardware
+  authorization is real, the Sepolia movement is real, the unlock itself is
+  bookkeeping — it never lands as USDC on Arc or HBAR on Hedera, because there is no
+  bridge. Code and copy say "authorizes", never "bridges". (CCTP Sepolia→Arc was
+  checked and is not trivially available for this project's scope, so it stays
+  roadmap.)
+- **Everything degrades to a structured denial with no device attached** (spec R1): no
+  `LEDGER_CLI_BIN` configured means every custody entry point — discovery, balances,
+  a replenishment request, a `GRANT_SIGNER=ledger` grant — returns `awaiting_device`
+  immediately, with zero device or network touch, so the rest of the product runs
+  demoable without a Ledger plugged in.
+- **The one live step**: `npm run demo:ledger-press` (`layers/custody/live-verify.ts`)
+  runs discovery, balances, and starts a real 0.001 ETH treasury authorization, then
+  prints `>>> PRESS THE BUTTON ON YOUR LEDGER NOW <<<` and polls `confirm_pending`'s own
+  logic until it confirms (or times out at 3 minutes). Everything before that line runs
+  headless; recorded headless output (discovery, balances, the refusal preview, every
+  no-device denial) is in `demo/proofs/custody-proof.output.md`
+  (`npm run proof:custody` to re-run it).
