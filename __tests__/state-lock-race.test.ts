@@ -79,7 +79,13 @@ describe('bootstrap state lock closes the concurrent-mint race (#21)', () => {
       // this test exists to prove. Polling the filesystem directly (not a
       // stdio marker from the child) is ground truth: no pipe-buffering hop
       // between "the lock is held" and this test observing it.
-      const firstChild = spawn(tsxBin, [probePath, 'live-lock', '300'], {
+      // 3s, not the 300ms this used to hold for: CI observed the SECOND
+      // probe's own cold start (spawn + tsx/esbuild transform + module
+      // resolution for layers/policy/state.js) taking long enough to
+      // outlast a 300ms hold, so the lock was already released by the time
+      // it tried -- a false pass on "fails fast" (it just never contended).
+      // 3s gives that startup all the margin it needs even under load.
+      const firstChild = spawn(tsxBin, [probePath, 'live-lock', '3000'], {
         env: { ...process.env, VITEST: '', FLOAT_STATE_DIR: stateDir },
       });
       let firstStdout = '';
