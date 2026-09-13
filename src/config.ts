@@ -18,6 +18,14 @@ const envSchema = z.object({
   FLOAT_PAYTO_ID: z.string().min(1).optional(),
   FLOAT_PAYMENTS_PORT: z.coerce.number().int().positive().optional(),
   FLOAT_ROOT_CEILING_HBAR: z.coerce.number().positive().optional(),
+  // #17: how much real HBAR bootstrap funds into each newly minted account.
+  // The treasury only needs enough to cover the demo's actual transfers (not
+  // the 3-5 HBAR it used to get funded with); a spender account only ever
+  // pays its own transaction fees, never a transfer amount (transfers move
+  // treasury -> counterparty via an approved allowance, never spender ->
+  // counterparty from the spender's own balance).
+  FLOAT_TREASURY_INITIAL_HBAR: z.coerce.number().positive().optional(),
+  FLOAT_AGENT_INITIAL_HBAR: z.coerce.number().positive().optional(),
   PRIVY_APP_ID: z.string().min(1).optional(),
   PRIVY_APP_SECRET: z.string().min(1).optional(),
   PRIVY_WALLET_ID: z.string().min(1).optional(),
@@ -73,6 +81,13 @@ export type FloatConfig = {
     defaultUsd: number;
     hotBalanceUsd: number;
   };
+  /** #17: real HBAR bootstrap funds new accounts with, kept low so a demo
+   * run costs a fraction of an HBAR instead of several. See
+   * `layers/policy/bootstrap.ts` for how these get spent. */
+  funding: {
+    treasuryInitialHbar: number;
+    agentInitialHbar: number;
+  };
   /** Which config layers have every relevant env var present — informational
    * (`float_status`'s summary, `layers/perception/tools.ts`'s gate on
    * `configured.graph`) only. As of #14 this no longer feeds `dryRun`:
@@ -85,6 +100,13 @@ export type FloatConfig = {
 
 const DEFAULT_CAP_USD = 50;
 const DEFAULT_HOT_BALANCE_CAP_USD = 200;
+// #17: was 3-5 HBAR each (six minted accounts x ~3 HBAR was the largest
+// single line item in the project's testnet burn). The treasury only needs
+// to cover the demo's actual transfers; a spender only ever pays its own
+// transaction fees (transfers move treasury -> counterparty via an approved
+// allowance, never out of the spender's own balance).
+const DEFAULT_TREASURY_INITIAL_HBAR = 0.5;
+const DEFAULT_AGENT_INITIAL_HBAR = 0.05;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
   const parsed = envSchema.parse(env);
@@ -119,6 +141,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
     caps: {
       defaultUsd: parsed.FLOAT_CAP_DEFAULT_USD ?? DEFAULT_CAP_USD,
       hotBalanceUsd: parsed.FLOAT_CAP_HOT_BALANCE_USD ?? DEFAULT_HOT_BALANCE_CAP_USD,
+    },
+    funding: {
+      treasuryInitialHbar: parsed.FLOAT_TREASURY_INITIAL_HBAR ?? DEFAULT_TREASURY_INITIAL_HBAR,
+      agentInitialHbar: parsed.FLOAT_AGENT_INITIAL_HBAR ?? DEFAULT_AGENT_INITIAL_HBAR,
     },
     configured,
   };
