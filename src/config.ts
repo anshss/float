@@ -16,7 +16,12 @@ const envSchema = z.object({
   // --- C4: payments (x402 on Hedera via Blocky402) ---
   BLOCKY402_API_BASE: z.string().min(1).optional(),
   FLOAT_PAYTO_ID: z.string().min(1).optional(),
-  FLOAT_PAYMENTS_PORT: z.coerce.number().int().positive().optional(),
+  // nonnegative, not positive: 0 is a real value here (OS-assigned ephemeral
+  // port), used by tests and by the demo agent/plugin's stdio launch so a
+  // second process never collides with a live float-mcp already bound to
+  // the default port — see layers/payments/resourceServer.ts's own `port =
+  // 0` default, which this env var previously couldn't reach at all.
+  FLOAT_PAYMENTS_PORT: z.coerce.number().int().nonnegative().optional(),
   FLOAT_ROOT_CEILING_HBAR: z.coerce.number().positive().optional(),
   // #17: how much real HBAR bootstrap funds into each newly minted account.
   // The treasury only needs enough to cover the demo's actual transfers (not

@@ -160,6 +160,11 @@ describe('float-mcp server (in-process MCP client)', () => {
   ];
 
   it.each(perceptionTools)('%s denies without configuration, never throws', async (name, args) => {
+    // spend_history falls back to the policy layer's bootstrapped topic id
+    // when HEDERA_TOPIC_ID isn't in env (see layers/perception/tools.ts) —
+    // reset so an unrelated test's bootstrap state can't leave a topic id
+    // behind and turn this "no config at all" case into an accidental ok.
+    resetStateForTests();
     await connect(loadConfig({}));
     const result = await client.callTool({ name, arguments: args });
     const body = parseTextResult(result);

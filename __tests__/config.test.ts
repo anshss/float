@@ -66,6 +66,11 @@ describe('config', () => {
     expect(config.caps.hotBalanceUsd).toBe(500);
   });
 
+  it('FLOAT_PAYMENTS_PORT=0 (OS-assigned ephemeral port) is accepted, not rejected as non-positive — needed so a second process (tests, the demo agent, the plugin) never collides with a live float-mcp on the default port', () => {
+    expect(() => loadConfig({ FLOAT_PAYMENTS_PORT: '0' })).not.toThrow();
+    expect(loadConfig({ FLOAT_PAYMENTS_PORT: '0' }).raw.FLOAT_PAYMENTS_PORT).toBe(0);
+  });
+
   it('#14: the demo-shaped configuration (every write-layer env var set, no explicit opt-in) still defaults to stubbed — env-var presence alone never flips to live', () => {
     const config = loadConfig({
       HEDERA_OPERATOR_ID: '0.0.1',

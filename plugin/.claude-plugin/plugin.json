@@ -1,0 +1,13 @@
+{
+  "name": "float",
+  "description": "Float: an MCP server that acts as the economic actuator for AI agents — compares lending rates via The Graph, pays per request over x402, enforces per-agent spend ceilings via owner-signed Hedera allowances, transfers USDC on Arc, and reads back every receipt from HCS via Mirror Node. Distribution wrapper only — see the repo README for what each tool actually does.",
+  "author": { "name": "Float" },
+  "mcpServers": {
+    "float": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["tsx", "--env-file=.env", "src/index.ts"],
+      "cwd": "${CLAUDE_PLUGIN_ROOT}/.."
+    }
+  }
+}
