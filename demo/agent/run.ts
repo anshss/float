@@ -21,6 +21,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFloatServer } from '../../src/server.js';
 import { loadConfig } from '../../src/config.js';
 import { startResourceServer } from '../../layers/payments/resourceServer.js';
+import { closeOperatorClient } from '../../layers/policy/hedera.js';
 import { assertLiveMode, NotLiveError } from './liveGate.js';
 import { runDemoBeats } from './runner.js';
 import { renderAgentView } from './view.js';
@@ -72,6 +73,13 @@ async function main() {
   } finally {
     resourceServer.close();
     await client.close();
+    // A live run's beats (grant_budget/spend, via layers/policy/engine.ts)
+    // open a cached Hedera gRPC channel that otherwise holds the event loop
+    // open well after the last line of output -- observed firsthand: this
+    // script kept running for well over a minute after printing "demo run
+    // complete" until it finally exited. Same fix live-verify.ts already
+    // applies to itself (layers/policy/live-verify.ts, layers/custody/live-verify.ts).
+    await closeOperatorClient();
   }
 }
 
