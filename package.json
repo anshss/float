@@ -12,6 +12,7 @@
     "pin": "tsx --env-file=.env scripts/pin.ts"
   },
   "dependencies": {
+    "@hashgraph/sdk": "^2.81.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.6.4"
   },

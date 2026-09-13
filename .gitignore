@@ -4,3 +4,8 @@ dist/
 .env.local
 .privy-auth.pem
 *.pem
+
+# Persisted Hedera account/topic ids and private keys minted by the policy
+# layer's bootstrap (layers/policy/state.ts). Never committed — keys live
+# here in plaintext for local/demo use only.
+layers/policy/.state/

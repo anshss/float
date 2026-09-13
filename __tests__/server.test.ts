@@ -3,6 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFloatServer } from '../src/server.js';
 import { loadConfig } from '../src/config.js';
+import { resetStateForTests } from '../layers/policy/state.js';
 
 const V1_TOOLS = [
   'float_status',
@@ -59,7 +60,6 @@ describe('float-mcp server (in-process MCP client)', () => {
   });
 
   const stubTools: Array<[string, Record<string, string>]> = [
-    ['grant_budget', { child_id: 'child-1', ceiling: '10', scope: 'lending' }],
     ['pay', { url: 'https://example.com', max: '5' }],
     ['transfer_usdc', { to: '0xabc', amount: '1', signal_ref: 'sig_1' }],
   ];
@@ -88,6 +88,29 @@ describe('float-mcp server (in-process MCP client)', () => {
     const body = parseTextResult(result);
     expect(body.denied).toBe(true);
     expect(body.reason).toBe('deployment_unavailable');
+  });
+
+  it('grant_budget() under DRY_RUN produces a synthetic allowance and never throws', async () => {
+    resetStateForTests();
+    await connect(loadConfig({ DRY_RUN: '1' }));
+    const result = await client.callTool({
+      name: 'grant_budget',
+      arguments: { child_id: 'child-server-1', ceiling: '3', scope: 'lending' },
+    });
+    const body = parseTextResult(result);
+    expect(body.ok).toBe(true);
+    expect(body.data.dry_run).toBe(true);
+    expect(body.data.agent_id).toBe('child-server-1');
+  });
+
+  it('grant_budget() refuses a ceiling that breaks the hierarchy invariant', async () => {
+    resetStateForTests();
+    await connect(loadConfig({ DRY_RUN: '1' }));
+    const over = await client.callTool({
+      name: 'grant_budget',
+      arguments: { child_id: 'child-server-2', ceiling: '999999', scope: 'lending' },
+    });
+    expect(parseTextResult(over)).toMatchObject({ denied: true, reason: 'ceiling_exceeded' });
   });
 
   it('confirm_pending() (no args) returns a structured denial', async () => {
