@@ -9,6 +9,8 @@ import { z } from 'zod';
 import { denied, ok, InMemorySignalStore, type ToolResult, type SignalStore } from './contracts.js';
 import { loadConfig, type FloatConfig } from './config.js';
 import { verifyLockfile } from './lockfile.js';
+import { InMemorySignalDigestStore, type SignalDigestStore } from '../layers/perception/signalDigest.js';
+import { compareMarkets, queryPosition, counterpartyRisk, spendHistory } from '../layers/perception/tools.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -28,12 +30,14 @@ function stub(): CallToolResult {
 export type FloatServerDeps = {
   config: FloatConfig;
   signalStore: SignalStore;
+  digestStore: SignalDigestStore;
 };
 
 export type FloatServer = {
   server: McpServer;
   config: FloatConfig;
   signalStore: SignalStore;
+  digestStore: SignalDigestStore;
 };
 
 /** Builds the Float MCP server and returns it alongside the config/signal
@@ -42,6 +46,7 @@ export type FloatServer = {
 export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatServer {
   const config = deps.config ?? loadConfig();
   const signalStore = deps.signalStore ?? new InMemorySignalStore();
+  const digestStore = deps.digestStore ?? new InMemorySignalDigestStore();
 
   const server = new McpServer({
     name: 'float-mcp',
@@ -70,52 +75,56 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     },
   );
 
-  // compare_markets(schema_family) — C2 stub.
+  // compare_markets(schema_family) — implemented by C2.
   server.registerTool(
     'compare_markets',
     {
       title: 'Compare markets',
       description:
-        'Fans a standardized query across the demo-core Graph deployments and returns ranked lending rates, stamped with deployment IDs. Stub in C1; implemented by C2.',
+        'Fans a standardized query across the demo-core Graph deployments and returns ranked lending rates, stamped with deployment IDs.',
       inputSchema: { schema_family: z.string() },
     },
-    async () => stub(),
+    async ({ schema_family }) =>
+      toCallToolResult(await compareMarkets({ schema_family }, { config, signalStore, digestStore })),
   );
 
-  // query_position(protocol, address) — C2 stub.
+  // query_position(protocol, address) — implemented by C2.
   server.registerTool(
     'query_position',
     {
       title: 'Query position',
       description:
-        'Reads a single address\'s position from one protocol deployment, stamped with the deployment ID served. Stub in C1; implemented by C2.',
+        'Reads a single address\'s position from one protocol deployment, stamped with the deployment ID served.',
       inputSchema: { protocol: z.string(), address: z.string() },
     },
-    async () => stub(),
+    async ({ protocol, address }) =>
+      toCallToolResult(await queryPosition({ protocol, address }, { config, signalStore, digestStore })),
   );
 
-  // counterparty_risk(address) — C2 stub.
+  // counterparty_risk(address) — implemented by C2.
   server.registerTool(
     'counterparty_risk',
     {
       title: 'Counterparty risk',
       description:
-        'Risk heuristics over an address\'s indexed history; returns a score plus the evidence rows used. Premium deep-report variant gated behind x402 (C4). Stub in C1; implemented by C2.',
+        'Risk heuristics over an address\'s indexed history; returns a score plus the evidence rows used. Premium deep-report variant gated behind x402 (C4).',
       inputSchema: { address: z.string() },
     },
-    async () => stub(),
+    async ({ address }) =>
+      toCallToolResult(await counterpartyRisk({ address }, { config, signalStore, digestStore })),
   );
 
-  // spend_history(agent_id) — C2/C4 stub. Backed by Mirror Node, not Graph.
+  // spend_history(agent_id) — implemented by C2. Backed by Mirror Node, not Graph.
   server.registerTool(
     'spend_history',
     {
       title: 'Spend history',
       description:
-        'Reads Float\'s own receipts on HCS, queryable via Mirror Node — never indexed by The Graph. Stub in C1; implemented by C2/C4.',
+        'Reads Float\'s own receipts on HCS, queryable via Mirror Node — never indexed by The Graph. Receipt semantics land in C4.',
       inputSchema: { agent_id: z.string() },
     },
-    async () => stub(),
+    async ({ agent_id }) =>
+      toCallToolResult(await spendHistory({ agent_id }, { config, signalStore, digestStore })),
   );
 
   // grant_budget(child_id, ceiling, scope) — C3 stub.
@@ -165,5 +174,5 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     async () => stub(),
   );
 
-  return { server, config, signalStore };
+  return { server, config, signalStore, digestStore };
 }

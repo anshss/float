@@ -12,6 +12,7 @@ const envSchema = z.object({
   HEDERA_TREASURY_ID: z.string().min(1).optional(),
   HEDERA_TREASURY_KEY: z.string().min(1).optional(),
   HEDERA_TOPIC_ID: z.string().min(1).optional(),
+  HEDERA_MIRROR_NODE_URL: z.string().min(1).optional(),
   PRIVY_APP_ID: z.string().min(1).optional(),
   PRIVY_APP_SECRET: z.string().min(1).optional(),
   PRIVY_WALLET_ID: z.string().min(1).optional(),
