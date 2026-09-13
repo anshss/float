@@ -54,7 +54,19 @@ function resolveStateDir(): string {
   // Test runner: a scratch dir, never the real one — otherwise a plain
   // `npm test` after a live run wipes bookkeeping a live-verify run just
   // minted on real testnet (this was itself a bug, fixed alongside #11).
-  if (process.env.VITEST) return join(tmpdir(), 'float-mcp-policy-test-state');
+  //
+  // Vitest runs test files across several worker processes in parallel;
+  // this module's STATE_DIR is computed once per process at import time,
+  // so a single shared path here means every parallel worker races on the
+  // same `hedera.json` and `resetStateForTests()` in one file clobbers
+  // another's fixtures mid-run. `VITEST_POOL_ID` is stable per worker
+  // process for the whole run, so a per-worker subdirectory gives each
+  // worker (and every test file scheduled onto it) its own state file with
+  // no cross-worker interference, without serialising the suite.
+  if (process.env.VITEST) {
+    const poolId = process.env.VITEST_POOL_ID ?? 'main';
+    return join(tmpdir(), 'float-mcp-policy-test-state', `worker-${poolId}`);
+  }
 
   if (process.env.FLOAT_STATE_DIR) {
     console.error(`[float-mcp/policy] bootstrap state directory (from FLOAT_STATE_DIR): ${process.env.FLOAT_STATE_DIR}`);

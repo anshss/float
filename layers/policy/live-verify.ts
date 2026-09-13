@@ -21,7 +21,7 @@
 // holds so it can't silently drift back out of sync.
 
 import { loadConfig } from '../../src/config.js';
-import { ensureOperatorKeyRecorded, fetchMirrorAccount } from './hedera.js';
+import { closeOperatorClient, ensureOperatorKeyRecorded, fetchMirrorAccount } from './hedera.js';
 import { grantBudget, spend } from './engine.js';
 import { getState } from './bootstrap.js';
 
@@ -36,6 +36,19 @@ async function main() {
     process.exit(1);
   }
 
+  // #19: the operator Client this script (and everything it calls) shares
+  // via getOperatorClient() caches a gRPC channel pool that holds the event
+  // loop open — without closing it, the process never exits on its own
+  // after this function returns, success or failure alike, and has to be
+  // killed. `finally` covers both.
+  try {
+    await runSteps(config);
+  } finally {
+    await closeOperatorClient();
+  }
+}
+
+async function runSteps(config: ReturnType<typeof loadConfig>): Promise<void> {
   const operations: string[] = [];
   const opId = config.raw.HEDERA_OPERATOR_ID!;
   const balanceBefore = (await fetchMirrorAccount(opId)).balanceTinybar;
