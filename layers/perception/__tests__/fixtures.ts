@@ -33,7 +33,7 @@ function jsonResponse(body: unknown, init: { ok?: boolean; status?: number } = {
  * a single test can wire up several deployments at once (compare_markets /
  * counterparty_risk fan out across five). */
 export function fixtureFetch(
-  bySubgraphId: Record<string, { meta?: unknown; markets?: unknown; account?: unknown }>,
+  bySubgraphId: Record<string, { meta?: unknown; probe?: unknown; markets?: unknown; account?: unknown }>,
 ): typeof fetch {
   return (async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const urlStr = input.toString();
@@ -42,6 +42,11 @@ export function fixtureFetch(
     const [, fixtures] = entry;
     const bodyStr = typeof init?.body === 'string' ? init.body : '';
     if (bodyStr.includes('_meta')) return jsonResponse(fixtures.meta ?? { errors: [{ message: 'no meta fixture' }] });
+    // Check the narrower `markets(first: 1)` non-empty probe before the
+    // general markets query — both contain the substring `markets(`.
+    if (bodyStr.includes('markets(first: 1)')) {
+      return jsonResponse(fixtures.probe ?? fixtures.markets ?? { errors: [{ message: 'no probe fixture' }] });
+    }
     if (bodyStr.includes('markets(')) return jsonResponse(fixtures.markets ?? { errors: [{ message: 'no markets fixture' }] });
     if (bodyStr.includes('account(')) return jsonResponse(fixtures.account ?? { errors: [{ message: 'no account fixture' }] });
     return jsonResponse({ errors: [{ message: 'fixture fetch: unrecognized query' }] });

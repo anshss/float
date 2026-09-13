@@ -1,7 +1,8 @@
 {
-  "pinnedAt": "2026-09-13T13:29:23.438Z",
+  "pinnedAt": "2026-09-13T13:44:34.167Z",
   "totalDeployments": 89,
-  "liveCount": 57,
+  "liveCount": 55,
+  "emptyCount": 2,
   "deadCount": 32,
   "deployments": {
     "aave-amm-ethereum": {
@@ -9,88 +10,89 @@
       "network": "MAINNET",
       "subgraphId": "41ooPWnDYKwckqyG1mvg7ZEndy5zMemXinx6uQxscrBS",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmP2GnFgjLvB4RBX6eZMicfaJ9uUvY4iTe2eMM1padTsPt",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "aave-arc-ethereum": {
       "slug": "aave-arc-ethereum",
       "network": "MAINNET",
       "subgraphId": "5hyqnEzjZbwFBU1rk4JBknCeiF2Mj93qBzsyQfpAa3QA",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmdsSNTCMe1zYjWWb78W7JjeMZbn7cHKBHm3iNxRwqaLwT",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "aave-rwa-ethereum": {
       "slug": "aave-rwa-ethereum",
       "network": "MAINNET",
       "subgraphId": "C8ynQrjVKcmqxb9fWrLvSCBFNf2ChFkxCg7Q8gknJrza",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "Qmae88RwkEQbfGezrNtSqM3BmZYTid5phZzRUJ8k3yVDWZ",
-      "blockNumber": 25968816
+      "blockNumber": 25968891,
+      "status": "live"
     },
     "aave-v2-ethereum": {
       "slug": "aave-v2-ethereum",
       "network": "MAINNET",
       "subgraphId": "C2zniPn45RnLDGzVeGZCx2Sw3GXrbc9gL4ZfL8B8Em2j",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmdwBHGxokamYsLfMVk6fXfry3Ss9emEiTy6wptd1ecysG",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "aave-v2-polygon": {
       "slug": "aave-v2-polygon",
       "network": "MATIC",
       "subgraphId": "GrZQJ7sWdTqiNUD8Vh2THaeBM4wGwiF8mFv9FBfyzwxm",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmWDWDHD7pBaqfb78cghSKLHQfe8v1yjBojAvF4F46PAxh",
-      "blockNumber": 93734081
+      "blockNumber": 93734686,
+      "status": "live"
     },
     "aave-v2-avalanche": {
       "slug": "aave-v2-avalanche",
       "network": "AVALANCHE",
       "subgraphId": "9nh6Ums63wFcoZpmegyPcAFtY3CAzQc3S6cuERALYMqa",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmWm8B4mtHRzwM8v2zhfYQYSxDGHDKfgbSmkpSHdtSLW5Q",
-      "blockNumber": 95183987
+      "blockNumber": 95184862,
+      "status": "live"
     },
     "aave-v3-ethereum": {
       "slug": "aave-v3-ethereum",
       "network": "MAINNET",
       "subgraphId": "JCNWRypm7FYwV8fx5HhzZPSFaMxgkPuw4TnR3Gpi81zk",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmcXE5QVcBcvcaJddPxd8mFs6W9xt7STmwfgguoiM6ddAd",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "aave-v3-optimism": {
       "slug": "aave-v3-optimism",
       "network": "OPTIMISM",
       "subgraphId": "3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmSJ9orPipkLpMYz8Qk1gRAyYzvFSJWG7Vw9dx5YYopvt1",
-      "blockNumber": 156853690
+      "blockNumber": 156854144,
+      "status": "empty",
+      "reason": "markets query returned zero rows"
     },
     "aave-v3-arbitrum": {
       "slug": "aave-v3-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "4xyasjQeREe7PxnF6wVdobZvCw5mhoHZq3T7guRpuNPf",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmUGh2BNwmiLgd9r81pz7f1khe18fondJUSbsFHfKvhrvk",
-      "blockNumber": 504748993
+      "blockNumber": 504752632,
+      "status": "live"
     },
     "aave-v3-base": {
       "slug": "aave-v3-base",
       "network": "BASE",
       "subgraphId": "D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "aave-v3-polygon": {
@@ -98,43 +100,43 @@
       "network": "MATIC",
       "subgraphId": "6yuf1C49aWEscgk5n9D1DekeG1BCk5Z9imJYJT3sVmAT",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmZvndp7kSUaMZo3W21bLyggU8wpcYG5LXBbGvu21t4cvD",
-      "blockNumber": 93734083
+      "blockNumber": 93734689,
+      "status": "live"
     },
     "aave-v3-avalanche": {
       "slug": "aave-v3-avalanche",
       "network": "AVALANCHE",
       "subgraphId": "72Cez54APnySAn6h8MswzYkwaL9KjvuuKnKArnPJ8yxb",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmV2gPmPoP9Mv4npRCm2hiKBTPUBVd3bUfKr8tVEUBe2sV",
-      "blockNumber": 95183987
+      "blockNumber": 95184863,
+      "status": "live"
     },
     "aave-v3-bsc": {
       "slug": "aave-v3-bsc",
       "network": "BSC",
       "subgraphId": "43jbGkvSw55sMvYyF6MZieksmJbajMu3hNGF8PN9ucuP",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmYv5zijum9sccCohnZo99Hz7qmaRwvDwXAmz2mtwA4AMv",
-      "blockNumber": 121653933
+      "blockNumber": 121655949,
+      "status": "live"
     },
     "aave-v3-scroll": {
       "slug": "aave-v3-scroll",
       "network": "SCROLL",
       "subgraphId": "DkvXMxq1skgSe1ehLHWpiUthHU1znnMDK2SUmj9avhEX",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmUnKox4pr9L23hBx4j7NsZaxKppj3St7jzoaLDvQ8vFNX",
-      "blockNumber": 121653926
+      "blockNumber": 121655943,
+      "status": "live"
     },
     "aave-v3-fantom": {
       "slug": "aave-v3-fantom",
       "network": "FANTOM",
       "subgraphId": "ZcLcVKJNQboeqACXhGuL3WFLBZzf5uUWheNsaFvLph6",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "aave-v3-harmony": {
@@ -142,7 +144,7 @@
       "network": "HARMONY",
       "subgraphId": "G1BNHqmteZiUwSEacfXG2nzMm13KLNo5xoxv62ErAyQv",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "aave-v3-gnosis": {
@@ -150,16 +152,16 @@
       "network": "GNOSIS",
       "subgraphId": "GiNMLDxT1Bdn2dQZxjQLmW24uwpc3geKUBW8RP6oEdg",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmcGsgDc9BPRJfkEeCjSNGnUsvMfmN7C5qtYvcpMuJcnrc",
-      "blockNumber": 47950190
+      "blockNumber": 47950190,
+      "status": "live"
     },
     "abracadabra-ethereum": {
       "slug": "abracadabra-ethereum",
       "network": "MAINNET",
       "subgraphId": "GLAu42kvVs7ixfXcmkAsRiS7Xt1NCpgkKsnz3qiriuvV",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0x5b3c8f7245dfbd9bea22d9c4b975df60a638e5a3: Unavailable(no status: indexer not available)}"
     },
     "abracadabra-arbitrum": {
@@ -167,25 +169,25 @@
       "network": "ARBITRUM_ONE",
       "subgraphId": "3m97d2dJ2pXwPFuiHrm8T37V9TCoAHBpMqRwdguyUZXF",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmVi7VY4RVYr3Ukf2RaWai9tQJ945hCRxFNFfvCNDjwaHY",
-      "blockNumber": 504748988
+      "blockNumber": 504752624,
+      "status": "live"
     },
     "abracadabra-avalanche": {
       "slug": "abracadabra-avalanche",
       "network": "AVALANCHE",
       "subgraphId": "3Gkei7B24o9C2bCoAbQpApZqMStPta7oCAnNhmNv5dab",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "Qmcq5q3EAp4VHqC1f1AyC9Uoo6xXYhsTsMSsWfZqjKpB6u",
-      "blockNumber": 95183979
+      "blockNumber": 95184861,
+      "status": "live"
     },
     "abracadabra-bsc": {
       "slug": "abracadabra-bsc",
       "network": "BSC",
       "subgraphId": "6bFCfHn5Uuv5fH7PxKL12dzWh3zz7fkQ46EnMa7nZUj2",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "abracadabra-fantom": {
@@ -193,7 +195,7 @@
       "network": "FANTOM",
       "subgraphId": "2nxGrxxPShrm49dEWusJjB5dpmonN16JFzLwDrS1pCyq",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "alpaca-finance-lending-bsc": {
@@ -201,7 +203,7 @@
       "network": "BSC",
       "subgraphId": "ED3ayhcLA7h7DCGwbysgcxtfMEcoeYCdMEsdZJeoaUFS",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "alpaca-finance-lending-fantom": {
@@ -209,7 +211,7 @@
       "network": "FANTOM",
       "subgraphId": "6EfFr7xDpD7LLi1X8Cj9b6ytjFjX3GZYrMrCKomEuCmx",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "banker-joe-avalanche": {
@@ -217,16 +219,16 @@
       "network": "AVALANCHE",
       "subgraphId": "9NjYuG2BFU1BPacNdKymd9eNdfVCaJM6LhsgD8zSQgDK",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmaPJBS9CXmzT1jFo84JPYgwdnWLTCDMBqa5xP5UGjBJrm",
-      "blockNumber": 95183989
+      "blockNumber": 95184863,
+      "status": "live"
     },
     "bastion-protocol-aurora": {
       "slug": "bastion-protocol-aurora",
       "network": "AURORA",
       "subgraphId": "BD4rW7Ga5YQ3x68tALbi8vsXNodd6LrvFeaVocdJt3bD",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "benqi-avalanche": {
@@ -234,16 +236,16 @@
       "network": "AVALANCHE",
       "subgraphId": "8ZjJGsaKea7WwLJPJNdHXPGsvXDe3iq2231aRjgBPisi",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmXQJEfS2o8kguj4L9jFtycE4en66omSDmAj56tr5fCrMc",
-      "blockNumber": 95183989
+      "blockNumber": 95184863,
+      "status": "live"
     },
     "burrow-near": {
       "slug": "burrow-near",
       "network": "NEAR",
       "subgraphId": "5W5fhZAq6QABBijKo7wqYps7TLzqAqS2mU1C1rhktvtg",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "compound-v2-ethereum": {
@@ -251,70 +253,70 @@
       "network": "MAINNET",
       "subgraphId": "4TbqVA8p2DoBd5qDbPMwmDZv3CsJjWtxo8nVSqF2tA9a",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmZ2LVu8b1J9F92CDRnDKX4CcM21zSNjb9ogdRfMxVCFrg",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "compound-v3-ethereum": {
       "slug": "compound-v3-ethereum",
       "network": "MAINNET",
       "subgraphId": "AwoxEZbiWLvv6e3QdvdMZw4WDURdGbvPfHmZRc8Dpfz9",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmNrQoow7pjM3biRnnhzeCaDYhuEbDyjKCpFeNv2oGXnuK",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "compound-v3-polygon": {
       "slug": "compound-v3-polygon",
       "network": "MATIC",
       "subgraphId": "5wfoWBpfYv59b99wDxJmyFiKBu9brXESeqJAzw8WP5Cz",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmSpf6KX1qpKPkMdQWwRee3uyztNbsNn4NQv3Jaf6AC3z7",
-      "blockNumber": 93734083
+      "blockNumber": 93734690,
+      "status": "live"
     },
     "compound-v3-arbitrum": {
       "slug": "compound-v3-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "5MjRndNWGhqvNX7chUYLQDnvEgc8DaH8eisEkcJt71SR",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmQURwBj3C9RRX3Th5MqTGehSSUcfnRgw3r8Sg2XWcjmjB",
-      "blockNumber": 504748992
+      "blockNumber": 504752611,
+      "status": "live"
     },
     "cream-finance-ethereum": {
       "slug": "cream-finance-ethereum",
       "network": "MAINNET",
       "subgraphId": "43NeT7UTACLUkohKBaG7auvkhsj4Kwux9kNTJr6sFdNe",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmTHjj9Tdy5zCtJn3KvGQam8RaQ3ZncMAgDZL8y9BFxBqY",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "cream-finance-bsc": {
       "slug": "cream-finance-bsc",
       "network": "BSC",
       "subgraphId": "Dd2ak11qC4mS2spUXzJm5v9EtVNJqmBC9rLzbckTwfN1",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmU7qbxpS7CjJdkSk9fbhE499yo5aevfNx7Nxv5gcmK1bC",
-      "blockNumber": 121653932
+      "blockNumber": 121655947,
+      "status": "live"
     },
     "cream-finance-arbitrum": {
       "slug": "cream-finance-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "GzHkVNf7BBqUjV8Sy6U6xUaWdGheFMdin1cB6sNvfdzs",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmcPEu6Ty7D8sGWeSAoYGkk587q2TFetzjq5XGHxRmM9qW",
-      "blockNumber": 504748997
+      "blockNumber": 504752639,
+      "status": "live"
     },
     "cream-finance-polygon": {
       "slug": "cream-finance-polygon",
       "network": "MATIC",
       "subgraphId": "CBeERkhQNwPwU3jSWdKHeAtPQh4TFucUyUMcqAJk19ij",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: BadResponse(no attestation: deployment `QmYFb4YbR6yqQGNRch2J32meM1NtmHnMZ1e6VCbZZAaizY` does not exist)}"
     },
     "dforce-ethereum": {
@@ -322,43 +324,43 @@
       "network": "MAINNET",
       "subgraphId": "6PaB6tKFqrL6YoAELEhFGU6Gc39cEynLbo6ETZMF3sCy",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmP6bTNozTjdcv9nXvRRzoCV1f3bMh4cuWBDfafARHrQqC",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "dforce-arbitrum": {
       "slug": "dforce-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "Dpk4Gen22wxQ3Laojf7DR2me8wGzjaHwjsKAsLf2rCFV",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmcwKc7mXADz6rYtGamKGqCE4q7W7Kvms23mJBAnLxxLhs",
-      "blockNumber": 504748998
+      "blockNumber": 504752640,
+      "status": "live"
     },
     "dforce-bsc": {
       "slug": "dforce-bsc",
       "network": "BSC",
       "subgraphId": "DKu1HqTTi26uLZKAmvDbqyAvcnFAjXEuRJmF35RLpyFg",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmcG2bqn2j5UYN1joW2DzEuq9S62e4ykkyKkh9SBCpwmg8",
-      "blockNumber": 121653937
+      "blockNumber": 121655955,
+      "status": "live"
     },
     "dforce-optimism": {
       "slug": "dforce-optimism",
       "network": "OPTIMISM",
       "subgraphId": "6AmkakXwadWiZ2jN7oJcFreWmKG1nZrT5P8om52upYPd",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmbgU815wywEMAssYhYEwhyM4N5dv31g52NAzsqmV1dc44",
-      "blockNumber": 156853690
+      "blockNumber": 156854144,
+      "status": "live"
     },
     "dforce-polygon": {
       "slug": "dforce-polygon",
       "network": "MATIC",
       "subgraphId": "9CFGPWpntYisBp7NpHMrgYzFrBmtVxSw58haGyZ3ewoZ",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "euler-finance-ethereum": {
@@ -366,16 +368,16 @@
       "network": "MAINNET",
       "subgraphId": "95nyAWFFaiz6gykko3HtBCyhRuP5vZzuKYsZiLxHxLhr",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmfTzwSoE3krDFMfYT9XTdwLcdMYBmMwyPqA1FHTMkmsVs",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "geist-finance-fantom": {
       "slug": "geist-finance-fantom",
       "network": "FANTOM",
       "subgraphId": "45LX32kZPBRNiXaBKDrzbCnidoKv3cMEc8cXt3kvPifz",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "goldfinch-ethereum": {
@@ -383,7 +385,7 @@
       "network": "MAINNET",
       "subgraphId": "GRwpFCPYyQPdz84sCnKemzrNvgFPuKkFLcRLR6jsRxHr",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "inverse-finance-ethereum": {
@@ -391,25 +393,26 @@
       "network": "MAINNET",
       "subgraphId": "EXuutY6qkZbXjYeJZdiDBf2imJswTNdfm8YZCqhAthfW",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmT7EhWub9q7kR14rurF7mxDQuGvh8xStT6VaXQJSt8LNx",
-      "blockNumber": 25266554
+      "blockNumber": 25266554,
+      "status": "empty",
+      "reason": "non-empty probe failed: bad indexers: {0x3e1536fc83cd5bed83a521a26034ff3e59c6a7c4: BadResponse(no attestation: indexing_error), 0xf92f430dd8567b0d466358c79594ab58d919a6d4: BadResponse(no attestation: indexing_error)}"
     },
     "iron-bank-ethereum": {
       "slug": "iron-bank-ethereum",
       "network": "MAINNET",
       "subgraphId": "5YoxED3bbWV9byvn3x3S3ebZ3idrQmQmsJhL5LMyY26v",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmYDS1MwYNjciXpJVtuuhb9KoPd6CCKLVYnhW3ofzm6yt1",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "iron-bank-fantom": {
       "slug": "iron-bank-fantom",
       "network": "FANTOM",
       "subgraphId": "4dWx6UZNcLEzgtipy45VkgtptYRqoHdZeCGNKxHAxKWo",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "iron-bank-avalanche": {
@@ -417,16 +420,16 @@
       "network": "AVALANCHE",
       "subgraphId": "9YiJM9oHy25estSJjB1Z71Hdz5C814R3vDoS2ezpN27C",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmfHn9JVnMMLCxiEhePnVVGHEvBBbW2e98AegKJXKnScTS",
-      "blockNumber": 95183989
+      "blockNumber": 95184866,
+      "status": "live"
     },
     "iron-bank-optimism": {
       "slug": "iron-bank-optimism",
       "network": "OPTIMISM",
       "subgraphId": "4WKePP5QfwrW6Hfd8YKWHuivivmdxPubuP45BryeGo4g",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "liquity-ethereum": {
@@ -434,43 +437,43 @@
       "network": "MAINNET",
       "subgraphId": "2D2dFCLjUt3MfFgTKW8cBxiRQ3Adss7KUtYh2rTcFVY",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmWEnV6povhA9Eq9Y315LsjJg7qwv169r1ZGw9o2uT24eZ",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "makerdao-ethereum": {
       "slug": "makerdao-ethereum",
       "network": "MAINNET",
       "subgraphId": "8sE6rTNkPhzZXZC6c8UQy2ghFTu5PPdGauwUBm4t7HZ1",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmYZq1vyFUgFYqyHJgFg2kYfRuYj2U4aXnxrKhZ7t2ApWy",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "maple-finance-v1-ethereum": {
       "slug": "maple-finance-v1-ethereum",
       "network": "MAINNET",
       "subgraphId": "J9dtvE11PWNZH74frWyx9QZonyC1Db2UWDMUegmT3zkG",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmSThLAKsPhzGffqKwcZnteqA2CR6HbQCtHygVojErwiEN",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "maple-finance-v2-ethereum": {
       "slug": "maple-finance-v2-ethereum",
       "network": "MAINNET",
       "subgraphId": "94swSaaFChsQoZzb9Vc7Lo6FWFV6YZUMNSdFVTMAeRgj",
       "schemaVersion": "3.0.1",
-      "live": true,
       "deploymentId": "QmVxMhEzFyPHoGzK7E4HQLVv9E8HzPB8hSpqVL9evtqh2K",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "moonwell-moonbeam": {
       "slug": "moonwell-moonbeam",
       "network": "MOONBEAM",
       "subgraphId": "DQhrdUHwspQf3hSjDtyfS6uqq9YiKoLF3Ut3U9os2HK",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "moonwell-moonriver": {
@@ -478,7 +481,7 @@
       "network": "MOONRIVER",
       "subgraphId": "8ayELti1UNCNCWuvwSwapjh4mvvCejeXsk4PmsWBmQ82",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "moonwell-base": {
@@ -486,34 +489,34 @@
       "network": "BASE",
       "subgraphId": "33ex1ExmYQtwGVwri1AP3oMFPGSce6YbocBP7fWbsBrg",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmeE6TgfRmK2iLAgCLBeXuxJQ2VXLFAeHVMTvmnECiFw7y",
-      "blockNumber": 51258406
+      "blockNumber": 51258861,
+      "status": "live"
     },
     "morpho-aave-v2-ethereum": {
       "slug": "morpho-aave-v2-ethereum",
       "network": "MAINNET",
       "subgraphId": "DsznTYxGdsqxWB6a474rSksvB7qWSth5Ff1PcxW28vZy",
       "schemaVersion": "3.0.1",
-      "live": true,
       "deploymentId": "QmcPfXRyCWdpEV9yVeUSdwPo2cCUxc8anYsDyrgwY35cCJ",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "morpho-aave-v3-ethereum": {
       "slug": "morpho-aave-v3-ethereum",
       "network": "MAINNET",
       "subgraphId": "FKe6ANnWmGPE6hajGLoTgPrVF2jYPHiRu2Jwcg9ZmG9A",
       "schemaVersion": "3.0.1",
-      "live": true,
       "deploymentId": "QmVpuZKrjhjHx2hCtpGNaW29ZYq4Xt2GyPLpiMDP2YTAHE",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "morpho-compound-ethereum": {
       "slug": "morpho-compound-ethereum",
       "network": "MAINNET",
       "subgraphId": "9dTy23tkahyiap1THgwnJuMwxNHVnQM57jFQQiUzjcY6",
       "schemaVersion": "3.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: BadResponse(no attestation: deployment `QmVv8VBkWZgZ8bvYgLK7MPv5wd5jfvXEinuGxRDNcFdQGT` does not exist)}"
     },
     "notional-finance-ethereum": {
@@ -521,7 +524,7 @@
       "network": "MAINNET",
       "subgraphId": "2t4T7bts8ZQCpGcVq9VSzDyPVCQc5Y7TFwZKfmXKeSVx",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "pac-finance-blast": {
@@ -529,7 +532,7 @@
       "network": "BLAST",
       "subgraphId": "ERsfyKMQTpTEN6LtyWvFwhDENLf6aAAggbtrNEnFKLpx",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "qidao-polygon": {
@@ -537,7 +540,7 @@
       "network": "MATIC",
       "subgraphId": "5UxEcMvYW4vVYP81tkPQMAvJv1e4m1xU8BJkDXBnpc6x",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "qidao-arbitrum": {
@@ -545,34 +548,34 @@
       "network": "ARBITRUM_ONE",
       "subgraphId": "Duw2tSACo9uRGFctAGsCc9pF7ZGMyqpjkAHPwm49dZe6",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmY5mVYHfLXoJf5z5q5aNG8Bg5TmJdDksvuT3kgcwWArnx",
-      "blockNumber": 504749002
+      "blockNumber": 504752648,
+      "status": "live"
     },
     "qidao-avalanche": {
       "slug": "qidao-avalanche",
       "network": "AVALANCHE",
       "subgraphId": "98GG74FxxsG25Ltd8qvJ9BRfFmQWyN1AkS92MZBG1BsR",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmZsHCckgzKxEgLqwSvCfTmU6DHXJy4skwdJvYxeSfVZGJ",
-      "blockNumber": 95183990
+      "blockNumber": 95184866,
+      "status": "live"
     },
     "qidao-base": {
       "slug": "qidao-base",
       "network": "BASE",
       "subgraphId": "9NHJ9k31qaGCYXppm9isJTiEoiB6v3tJDnR6SrQrxcjw",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmeivVyBQ8DpY5zBnzgHviy8fS5UnuCaVBNXVPUvyEKc7G",
-      "blockNumber": 51258405
+      "blockNumber": 51258861,
+      "status": "live"
     },
     "qidao-bsc": {
       "slug": "qidao-bsc",
       "network": "BSC",
       "subgraphId": "4DcztqYL7UG5bjdisWWvnj3m4NtK5J3bs89scihAkicr",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0x63c9dc729ba7a22bb8605216b24a34b902e5fe94: BadResponse(400), 0xb4b4570df6f7fe320f10fdfb702dba7e35244550: BadResponse(400)}"
     },
     "qidao-ethereum": {
@@ -580,16 +583,16 @@
       "network": "MAINNET",
       "subgraphId": "BmQSQaXsivq866kUobQSbyxycjk3D7CiaczKgu3P9ifB",
       "schemaVersion": "1.3.0",
-      "live": true,
       "deploymentId": "QmYzy7RCMhHqDLxWiNY32AExrosJ1chadGfYeEWve15kfU",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "qidao-fantom": {
       "slug": "qidao-fantom",
       "network": "FANTOM",
       "subgraphId": "hf51jYbZ9uESiuBabfxf6fRdc22xtmNWX9c3SRrct2q",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "qidao-moonriver": {
@@ -597,7 +600,7 @@
       "network": "MOONRIVER",
       "subgraphId": "HzDP5zXKyjnEJP9TnFirk3qA24SUp4AfzKUBSRcBekgz",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "qidao-optimism": {
@@ -605,7 +608,7 @@
       "network": "OPTIMISM",
       "subgraphId": "4JbWxzxBNCpAaVz72Gt2UthgiwcWZQLKDBhmSE7wKY2K",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "qidao-gnosis": {
@@ -613,16 +616,16 @@
       "network": "GNOSIS",
       "subgraphId": "7vJEsy8pJmRQZQh5kTXNz68SRHXBS859hMq3o5uWF1Ac",
       "schemaVersion": "1.3.1",
-      "live": true,
       "deploymentId": "QmSmcEG9MemxKGrj4ASDJ3JccRtZDbxTLvXgCu7WBYQeAQ",
-      "blockNumber": 48230200
+      "blockNumber": 48230381,
+      "status": "live"
     },
     "qidao-harmony": {
       "slug": "qidao-harmony",
       "network": "HARMONY",
       "subgraphId": "DCEQvXCiqtpMybQLL4YAgdCzqHzRH6wFFnCDnnLBBuvf",
       "schemaVersion": "1.3.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "radiant-capital-arbitrum": {
@@ -630,34 +633,34 @@
       "network": "ARBITRUM_ONE",
       "subgraphId": "5HTkKJNSm72tUGakwj8yroDGHxc6fBhmLaA5oJepZGL3",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmNsCGjv5BxxZvyMXbGAjgcVJEqiY9mx7wjb9KNcA4LeRj",
-      "blockNumber": 504748993
+      "blockNumber": 504752646,
+      "status": "live"
     },
     "rari-fuse-ethereum": {
       "slug": "rari-fuse-ethereum",
       "network": "MAINNET",
       "subgraphId": "kecp6SPMvbB4GTqg9r5PXvztYriexj5F3ZCaATpjmb2",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmdRFSobiBMoKKyNZnwahtn8uzPFxat86qg1Mu7KobJcSb",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "rari-fuse-arbitrum": {
       "slug": "rari-fuse-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "HnV3fhwsWfmQGdD2AeGzqvRVTDBqnMH74jCsDVq1DXYP",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmU8G3bY1v3r5RkLjcpJQbBnZauj4pL6KdGQMEhXj3N8qA",
-      "blockNumber": 504749004
+      "blockNumber": 504752651,
+      "status": "live"
     },
     "scream-fantom": {
       "slug": "scream-fantom",
       "network": "FANTOM",
       "subgraphId": "Cj3pDoqHgLBntkaXAKMxtJTZr3StxYvVEedTXyJGJoK4",
       "schemaVersion": "2.0.1",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "seamless-protocol-base": {
@@ -665,16 +668,16 @@
       "network": "BASE",
       "subgraphId": "2u4mWUV4xS19ef1MbnxZHWLLMwdPxtVifH46JbonXwXP",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmPSmTkJPSKLFn46YdgwMKV5K2c9a3pkWnzDCC4ccCLAXE",
-      "blockNumber": 51257531
+      "blockNumber": 51258083,
+      "status": "live"
     },
     "seismic-blast": {
       "slug": "seismic-blast",
       "network": "BLAST",
       "subgraphId": "d7gMk1zkEyCQuNVeirBYA6keCZv8hTLheCZ4DBCjRfz",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "sonne-finance-optimism": {
@@ -682,79 +685,79 @@
       "network": "OPTIMISM",
       "subgraphId": "DQqb7FiQ1joLhESkAwvAYiuXhwfz4zf6qHmbt7stnec8",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmRFsPe6pbJqgW5M4hntRePkXAQjcMbWqKtSWnj2L8xQsN",
-      "blockNumber": 156853690
+      "blockNumber": 156854146,
+      "status": "live"
     },
     "spark-lend-ethereum": {
       "slug": "spark-lend-ethereum",
       "network": "MAINNET",
       "subgraphId": "GbKdmBe4ycCYCQLQSjqGg6UHYoYfbyJyq5WrG35pv1si",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmTVumjhubXWP8MeDx5g114MRX99E4Gie5mFqVurttF99X",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "spark-lend-gnosis": {
       "slug": "spark-lend-gnosis",
       "network": "GNOSIS",
       "subgraphId": "Bw4RH37UbbGEhHo4FaWwT1dn9QJzm1XSZCyK1cbr6ZKM",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmXCPG1uRf1YhxYmzdr83kQSEoviL4ja2e5JBB4KezvpE9",
-      "blockNumber": 48228199
+      "blockNumber": 48228199,
+      "status": "live"
     },
     "truefi-ethereum": {
       "slug": "truefi-ethereum",
       "network": "MAINNET",
       "subgraphId": "39F8fYCvLYmutjqpzEwx3dcEJTtFFVupvBzJqkEzftA7",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmRtThzzq3zyGLbzVfNEUycjfddfJodLDZZcNQGYr8tNkL",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "uwu-lend-ethereum": {
       "slug": "uwu-lend-ethereum",
       "network": "MAINNET",
       "subgraphId": "CZBD7e8VGvNa6WkBHZAaC688bsZ35UvAM1AuDdVng2aE",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmUVAKNmyUCZxtn4MrUzSxswavk8gBAMLJaisSQRyyezi4",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "venus-protocol-bsc": {
       "slug": "venus-protocol-bsc",
       "network": "BSC",
       "subgraphId": "CwswJ7sfENafqgAYU1upn3hQgoEV2CXXRZRJ7XtgJrKG",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmcZz5Lnn5p5tQ2jW1xjQaQbTXGMWX2GiK9yC3mtv6gZEZ",
-      "blockNumber": 121653941
+      "blockNumber": 121655961,
+      "status": "live"
     },
     "vesta-finance-arbitrum": {
       "slug": "vesta-finance-arbitrum",
       "network": "ARBITRUM_ONE",
       "subgraphId": "zGuPrsVqtY5ehJDCmweb9ZnBrae3tSQWRux8Mz1M4Gn",
       "schemaVersion": "2.0.1",
-      "live": true,
       "deploymentId": "QmW5ZkaWi1DoL5FnJrKN5CScDoTpJ4pJM7TfSNBkqhPekP",
-      "blockNumber": 504749006
+      "blockNumber": 504752655,
+      "status": "live"
     },
     "zerolend-ethereum": {
       "slug": "zerolend-ethereum",
       "network": "MAINNET",
       "subgraphId": "4Zf4doH54RDit9KVsfCp3MkjrP3szhJZwvw2z5PHczx9",
       "schemaVersion": "3.1.0",
-      "live": true,
       "deploymentId": "QmZnr6yqBW59GfPqAZsVWKU6RF4ZeJuSx2pZUa3K7RDdzs",
-      "blockNumber": 25968816
+      "blockNumber": 25968892,
+      "status": "live"
     },
     "zerolend-blast": {
       "slug": "zerolend-blast",
       "network": "BLAST",
       "subgraphId": "6JP9542ArawumBSYczerbWGu6k7uu3hqk6qJnSkrgTM5",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     },
     "zerolend-zksync-era": {
@@ -762,7 +765,7 @@
       "network": "ZKSYNC_ERA",
       "subgraphId": "3CHaJvCkTMqXa4PRKNshVecE9JqgNFCdsXNyGLZXFeM2",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "bad indexers: {0xbdfb5ee5a2abf4fc7bb1bd1221067aef7f9de491: Unavailable(no status: failed to get indexing progress)}"
     },
     "zerolend-linea": {
@@ -770,7 +773,7 @@
       "network": "LINEA",
       "subgraphId": "DLzwo1WFaKy7R7MgQWrnBXr19EbGwPRubu9YmsSmRMfC",
       "schemaVersion": "3.1.0",
-      "live": false,
+      "status": "dead",
       "error": "subgraph not found: no allocations"
     }
   }

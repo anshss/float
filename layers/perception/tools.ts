@@ -22,30 +22,37 @@ export type PerceptionDeps = {
 };
 
 type DeadCoverage = { slug: string; error: string };
+type EmptyCoverage = { slug: string; reason: string };
 
 function loadLockfile(deps: PerceptionDeps): Lockfile | null {
   return (deps.readLockfileImpl ?? readLockfile)();
 }
 
-/** Splits a set of demo-core slugs into what's actually pinned-and-live vs
- * everything else — the "dead deployments reported, never dropped" contract. */
+/** Splits a set of demo-core slugs into live / empty / dead — the "empty and
+ * dead are both reported, never silently dropped or counted as coverage"
+ * contract. A resolving-but-zero-rows deployment (empty) is never treated as
+ * servable, same as an unreachable one (dead). */
 function coverageOf(lockfile: Lockfile | null, slugs: readonly string[]) {
   const live: string[] = [];
+  const empty: EmptyCoverage[] = [];
   const dead: DeadCoverage[] = [];
   for (const slug of slugs) {
     if (!lockfile) {
       dead.push({ slug, error: 'no lockfile — run npm run pin' });
       continue;
     }
-    const pinned = getPinned(lockfile, slug);
-    if (pinned) {
-      live.push(slug);
-      continue;
-    }
     const entry = lockfile.deployments[slug];
-    dead.push({ slug, error: entry && !entry.live ? entry.error : 'not pinned' });
+    if (!entry) {
+      dead.push({ slug, error: 'not pinned' });
+    } else if (entry.status === 'live') {
+      live.push(slug);
+    } else if (entry.status === 'empty') {
+      empty.push({ slug, reason: entry.reason });
+    } else {
+      dead.push({ slug, error: entry.error });
+    }
   }
-  return { live, dead };
+  return { live, empty, dead };
 }
 
 const MARKETS_QUERY =
@@ -67,7 +74,7 @@ export async function compareMarkets(
     return denied('deployment_unavailable', 'GRAPH_API_KEY not configured');
   }
   const lockfile = loadLockfile(deps);
-  const { live, dead } = coverageOf(lockfile, DEMO_CORE_SLUGS);
+  const { live, empty, dead } = coverageOf(lockfile, DEMO_CORE_SLUGS);
   if (live.length === 0) {
     return denied(
       'deployment_unavailable',
@@ -118,6 +125,7 @@ export async function compareMarkets(
     coverage: {
       totalRequested: DEMO_CORE_SLUGS.length,
       live,
+      empty,
       dead: [...dead, ...queryFailures],
     },
   };
@@ -178,9 +186,13 @@ export async function queryPosition(
   const lockfile = loadLockfile(deps);
   const pinned = lockfile ? getPinned(lockfile, args.protocol) : null;
   if (!pinned) {
-    const detail = lockfile
-      ? `deployment for ${args.protocol} is not pinned or not live`
-      : 'no lockfile — run npm run pin';
+    let detail = 'no lockfile — run npm run pin';
+    if (lockfile) {
+      const resolved = lockfile.deployments[args.protocol];
+      if (resolved?.status === 'dead') detail = `deployment for ${args.protocol} is dead: ${resolved.error}`;
+      else if (resolved?.status === 'empty') detail = `deployment for ${args.protocol} resolves but is empty: ${resolved.reason}`;
+      else detail = `deployment for ${args.protocol} is not pinned`;
+    }
     return denied('deployment_unavailable', detail);
   }
 
@@ -244,7 +256,7 @@ export async function counterpartyRisk(
     return denied('deployment_unavailable', 'GRAPH_API_KEY not configured');
   }
   const lockfile = loadLockfile(deps);
-  const { live, dead } = coverageOf(lockfile, DEMO_CORE_SLUGS);
+  const { live, empty, dead } = coverageOf(lockfile, DEMO_CORE_SLUGS);
   if (live.length === 0) {
     return denied(
       'deployment_unavailable',
@@ -303,6 +315,7 @@ export async function counterpartyRisk(
     coverage: {
       totalRequested: DEMO_CORE_SLUGS.length,
       live,
+      empty,
       dead: [...dead, ...queryFailures],
     },
   };

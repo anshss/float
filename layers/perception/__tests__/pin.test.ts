@@ -4,45 +4,70 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pinAll, writeLockfile, readLockfile, getPinned, type Lockfile } from '../pin.js';
 import { listAllSubgraphs } from '../registry.js';
-import { loadFixture } from './fixtures.js';
+import { fixtureFetch, loadFixture } from './fixtures.js';
 
-const CORE_META: Record<string, unknown> = {
-  JCNWRypm7FYwV8fx5HhzZPSFaMxgkPuw4TnR3Gpi81zk: loadFixture('meta.aave-v3-ethereum.json'),
-  D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9: loadFixture('meta.aave-v3-base.json'), // real dead entry
-  '4xyasjQeREe7PxnF6wVdobZvCw5mhoHZq3T7guRpuNPf': loadFixture('meta.aave-v3-arbitrum.json'),
+// Real recorded responses: aave-v3-ethereum is live+populated, aave-v3-base
+// is genuinely dead (`_meta` itself fails), aave-v3-optimism resolves `_meta`
+// fine but its markets probe returns zero rows (the exact bug #10 fixes),
+// aave-v3-polygon is live+populated (the new demo-core member).
+const FIXTURES = {
+  JCNWRypm7FYwV8fx5HhzZPSFaMxgkPuw4TnR3Gpi81zk: {
+    meta: loadFixture('meta.aave-v3-ethereum.json'),
+    probe: loadFixture('markets.aave-v3-ethereum.json'),
+  },
+  D7mapexM5ZsQckLJai2FawTKXJ7CqYGKM8PErnS3cJi9: {
+    meta: loadFixture('meta.aave-v3-base.json'), // real dead entry
+  },
+  '3RWFxWNstn4nP3dXiDfKi9GgBoHx7xzc7APkXs1MLEgi': {
+    meta: loadFixture('meta.aave-v3-optimism.json'),
+    probe: loadFixture('probe.aave-v3-optimism.json'), // real empty entry
+  },
+  '6yuf1C49aWEscgk5n9D1DekeG1BCk5Z9imJYJT3sVmAT': {
+    meta: loadFixture('meta.aave-v3-polygon.json'),
+    probe: loadFixture('probe.aave-v3-polygon.json'),
+  },
 };
 
-function fetchImplFor(meta: Record<string, unknown>): typeof fetch {
-  return (async (input: string | URL | Request): Promise<Response> => {
-    const urlStr = input.toString();
-    const match = Object.entries(meta).find(([id]) => urlStr.includes(id));
-    const body = match ? match[1] : { errors: [{ message: 'subgraph not found: no allocations' }] };
-    return { ok: true, status: 200, json: async () => body } as Response;
-  }) as typeof fetch;
-}
-
 describe('pinAll', () => {
-  it('classifies every registered subgraph as live or dead, never dropping one', async () => {
-    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fetchImplFor(CORE_META), concurrency: 8 });
+  it('classifies every registered subgraph as live, empty or dead, never dropping one', async () => {
+    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES), concurrency: 8 });
     const totalEntries = listAllSubgraphs().length;
     expect(lockfile.totalDeployments).toBe(totalEntries);
-    expect(lockfile.liveCount + lockfile.deadCount).toBe(totalEntries);
+    expect(lockfile.liveCount + lockfile.emptyCount + lockfile.deadCount).toBe(totalEntries);
     expect(Object.keys(lockfile.deployments)).toHaveLength(totalEntries);
   });
 
   it('pins the real recorded deployment ID for a live core deployment', async () => {
-    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fetchImplFor(CORE_META) });
+    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES) });
     const pinned = getPinned(lockfile, 'aave-v3-ethereum');
     expect(pinned).not.toBeNull();
     expect(pinned?.deploymentId).toBe('QmcXE5QVcBcvcaJddPxd8mFs6W9xt7STmwfgguoiM6ddAd');
   });
 
   it('reports the real dead aave-v3-base deployment instead of silently dropping it', async () => {
-    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fetchImplFor(CORE_META) });
+    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES) });
     expect(getPinned(lockfile, 'aave-v3-base')).toBeNull();
     const entry = lockfile.deployments['aave-v3-base'];
-    expect(entry.live).toBe(false);
-    if (!entry.live) expect(entry.error).toBe('subgraph not found: no allocations');
+    expect(entry.status).toBe('dead');
+    if (entry.status === 'dead') expect(entry.error).toBe('subgraph not found: no allocations');
+  });
+
+  it('classifies aave-v3-optimism as empty, not live — it resolves _meta but returns zero markets', async () => {
+    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES) });
+    expect(getPinned(lockfile, 'aave-v3-optimism')).toBeNull();
+    const entry = lockfile.deployments['aave-v3-optimism'];
+    expect(entry.status).toBe('empty');
+    if (entry.status === 'empty') {
+      expect(entry.deploymentId).toBe('QmSJ9orPipkLpMYz8Qk1gRAyYzvFSJWG7Vw9dx5YYopvt1');
+      expect(entry.reason).toBe('markets query returned zero rows');
+    }
+  });
+
+  it('classifies aave-v3-polygon as live — populated markets probe', async () => {
+    const lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES) });
+    const pinned = getPinned(lockfile, 'aave-v3-polygon');
+    expect(pinned).not.toBeNull();
+    expect(pinned?.deploymentId).toBe('QmZvndp7kSUaMZo3W21bLyggU8wpcYG5LXBbGvu21t4cvD');
   });
 });
 
@@ -55,7 +80,7 @@ describe('lockfile read/write', () => {
 
   it('round-trips through disk', async () => {
     const filePath = path.join(dir, 'deployments.lock.json');
-    const lockfile: Lockfile = await pinAll({ apiKey: 'k', fetchImpl: fetchImplFor(CORE_META) });
+    const lockfile: Lockfile = await pinAll({ apiKey: 'k', fetchImpl: fixtureFetch(FIXTURES) });
     writeLockfile(lockfile, filePath);
     const read = readLockfile(filePath);
     expect(read).toEqual(lockfile);
