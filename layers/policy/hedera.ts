@@ -47,6 +47,17 @@ export function getOperator(config: FloatConfig): HederaOperator {
   return requireOperator(config);
 }
 
+/** Closes the cached Client's gRPC channel pool and clears the cache, so a
+ * short-lived process (a script, not the long-running MCP server) can exit
+ * on its own instead of hanging on an open channel holding the event loop.
+ * No-op if a client was never created. Safe to call more than once. */
+export async function closeOperatorClient(): Promise<void> {
+  if (!cachedClient) return;
+  const client = cachedClient;
+  cachedClient = null;
+  await client.close();
+}
+
 /** Mirror node is eventually consistent with consensus by a few seconds;
  * bootstrap and the live-verify script both need to read back what they
  * just wrote, so give it a beat before the first check. */
