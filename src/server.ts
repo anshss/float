@@ -14,6 +14,7 @@ import { compareMarkets, queryPosition, counterpartyRisk, spendHistory } from '.
 import { readLockfile, validateDemoCore } from '../layers/perception/pin.js';
 import { grantBudget } from '../layers/policy/engine.js';
 import { getPolicyStatus } from '../layers/policy/status.js';
+import { pay as payTool } from '../layers/payments/pay.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -187,16 +188,18 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     async ({ child_id, ceiling, scope }) => toCallToolResult(await grantBudget(config, { childId: child_id, ceiling, scope })),
   );
 
-  // pay(url, max) — C3/C4 stub.
+  // pay(url, max) — C4: full x402 flow (request -> 402 -> policy check via
+  // C3's engine -> pay -> retry -> 200), policy-checked against root's
+  // budget ceiling before any payment is built or sent.
   server.registerTool(
     'pay',
     {
       title: 'Pay',
       description:
-        'Runs the full x402 flow against a gated endpoint, policy-checked against the caller\'s budget. Stub in C1; implemented by C3/C4.',
+        'Runs the full x402 flow (request, 402 challenge, policy check, pay, retry) against a gated endpoint on Hedera testnet via Blocky402, refusing over-budget requests before any payment is sent.',
       inputSchema: { url: z.string(), max: z.string() },
     },
-    async () => stub(),
+    async ({ url, max }) => toCallToolResult(await payTool({ url, max }, { config, signalStore, digestStore })),
   );
 
   // transfer_usdc(to, amount, signal_ref) — C5 stub. Refuses without signal_ref.

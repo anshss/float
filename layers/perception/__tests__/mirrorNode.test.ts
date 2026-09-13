@@ -22,11 +22,12 @@ describe('mirrorNode', () => {
     expect(decoded).toEqual({
       v: 1,
       kind: 'spend',
-      agent_id: 'agent-1',
-      ts: '2026-09-13T00:00:00Z',
-      service: 'compare_markets',
-      amount: '2.50',
-      tx: '0.0.900002@1700000000.000000002',
+      agent_id: 'demo-child-1',
+      ts: '2026-09-13T13:46:06.691Z',
+      policy_id: 'demo-child-1',
+      service: 'counterparty_risk',
+      amount: '1',
+      tx: '0.0.10524027@1789307157.310678235',
     });
   });
 
