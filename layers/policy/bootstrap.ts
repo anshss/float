@@ -69,9 +69,18 @@ export async function ensureAgentAccount(config: FloatConfig, agentId: string): 
  * unset. Every grant/revoke/spend/denial writes one AuditMessage here. */
 export async function ensureTopic(config: FloatConfig): Promise<string> {
   const envTopic = config.raw.HEDERA_TOPIC_ID;
-  if (envTopic) return envTopic;
-
   const state = loadState();
+  if (envTopic) {
+    // Persist an explicitly-supplied topic id into state too (not just env)
+    // — #16: this is how an existing topic (its history worth keeping) gets
+    // remembered by future runs even if HEDERA_TOPIC_ID isn't set again.
+    if (state.topicId !== envTopic && !config.dryRun) {
+      state.topicId = envTopic;
+      saveState(state);
+    }
+    return envTopic;
+  }
+
   if (state.topicId) return state.topicId;
 
   if (config.dryRun) {
