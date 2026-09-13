@@ -14,7 +14,8 @@
     "demo:pay-live-verify": "tsx --env-file=.env layers/payments/live-verify.ts",
     "demo:ledger-press": "tsx --env-file=.env layers/custody/live-verify.ts",
     "proof:arc": "tsx --env-file=.env demo/proofs/arc-settlement-proof.ts",
-    "proof:custody": "tsx --env-file=.env demo/proofs/custody-proof.ts"
+    "proof:custody": "tsx --env-file=.env demo/proofs/custody-proof.ts",
+    "demo:agent": "tsx --env-file=.env demo/agent/run.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",

@@ -6,6 +6,7 @@ import { InMemorySignalDigestStore } from '../signalDigest.js';
 import { findSubgraph } from '../registry.js';
 import { fixtureFetch, loadFixture, isOk } from './fixtures.js';
 import type { Lockfile } from '../pin.js';
+import { loadState, resetStateForTests, saveState } from '../../policy/state.js';
 
 // All five demo-core deployments live and populated after #10's swap
 // (aave-v3-base → aave-v3-polygon).
@@ -249,13 +250,30 @@ describe('counterpartyRisk', () => {
 });
 
 describe('spendHistory', () => {
-  it('denies when no HCS audit topic is configured', async () => {
+  it('denies when no HCS audit topic is configured or bootstrapped', async () => {
+    resetStateForTests(); // isolate from any topicId another test file's bootstrap left behind
     const result = await spendHistory({ agent_id: 'agent-1' }, makeDeps());
     expect(isOk(result)).toBe(false);
     if (isOk(result)) return;
     expect(result.reason).toBe('deployment_unavailable');
-    expect(result.detail).toMatch(/HEDERA_TOPIC_ID/);
+    expect(result.detail).toMatch(/audit topic/);
     expect(result.detail).not.toMatch(/graph/i);
+  });
+
+  it('falls back to the policy layer\'s bootstrapped topic id when HEDERA_TOPIC_ID is not set in env — the same ground truth float_status() reports', async () => {
+    resetStateForTests();
+    const state = loadState();
+    state.topicId = '0.0.900002';
+    saveState(state);
+
+    const deps = makeDeps({
+      config: loadConfig({ GRAPH_API_KEY: 'k' }), // no HEDERA_TOPIC_ID in env
+      fetchImpl: async () => ({ ok: true, status: 200, json: async () => ({ messages: [] }) }) as Response,
+    });
+    const result = await spendHistory({ agent_id: 'root' }, deps);
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    expect((result.data as { topicId: string }).topicId).toBe('0.0.900002');
   });
 
   it('reads and filters the fixture-recorded Mirror Node topic by agent_id', async () => {

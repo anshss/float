@@ -4,6 +4,7 @@ import { loadConfig } from '../../../src/config.js';
 import { InMemorySignalStore } from '../../../src/contracts.js';
 import { InMemorySignalDigestStore } from '../../perception/signalDigest.js';
 import { startResourceServer } from '../resourceServer.js';
+import { loadState, saveState, resetStateForTests } from '../../policy/state.js';
 import { encodePaymentSignatureHeader } from '@x402/core/http';
 
 function config() {
@@ -31,6 +32,37 @@ describe('gated resource server (seller side)', () => {
     expect(res.status).toBe(402);
     const body = (await res.json()) as any;
     expect(body.accepts[0]).toMatchObject({ scheme: 'exact', network: 'hedera:testnet', extra: { feePayer: '0.0.7162784' } });
+  });
+
+  // Regression for the beat-3 failure this ticket root-caused: with no
+  // HEDERA_TREASURY_ID/FLOAT_PAYTO_ID env var (the policy layer never sets
+  // one -- it bootstraps a treasury into its own state file instead), payTo
+  // used to fall straight through to HEDERA_OPERATOR_ID, the same account
+  // `pay()` signs from, making every live payment a self-transfer the
+  // facilitator correctly rejects.
+  it('quotes the bootstrapped treasury as payTo, never the buyer/operator account', async () => {
+    resetStateForTests();
+    saveState({ ...loadState(), treasury: { accountId: '0.0.10525207', privateKey: 'unused-in-this-test' } });
+    try {
+      const facilitatorDeps = {
+        fetchImpl: vi.fn(async () =>
+          ({ ok: true, json: async () => ({ x402Version: 2, kinds: [{ network: 'hedera:testnet', extra: { feePayer: '0.0.7162784' } }] }) }) as Response,
+        ),
+      };
+      server = startResourceServer(
+        { config: config(), signalStore: new InMemorySignalStore(), digestStore: new InMemorySignalDigestStore(), facilitatorDeps },
+        0,
+      );
+      const port = (server.address() as AddressInfo).port;
+
+      const res = await fetch(`http://127.0.0.1:${port}/premium/counterparty-risk/0xabc`);
+      expect(res.status).toBe(402);
+      const body = (await res.json()) as any;
+      expect(body.accepts[0].payTo).toBe('0.0.10525207');
+      expect(body.accepts[0].payTo).not.toBe('0.0.10523774'); // config()'s HEDERA_OPERATOR_ID -- the buyer, not the seller
+    } finally {
+      resetStateForTests();
+    }
   });
 
   it('verifies+settles via the facilitator and returns 200 with the report and settlement tx', async () => {

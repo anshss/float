@@ -134,3 +134,42 @@ resolve cleanly via `node:module`'s `createRequire` (see `layers/custody/ledgerS
   headless; recorded headless output (discovery, balances, the refusal preview, every
   no-device denial) is in `demo/proofs/custody-proof.output.md`
   (`npm run proof:custody` to re-run it).
+
+## C7: scripted demo agent + Claude Code plugin wrapper
+
+`demo/agent/` runs the six-beat demo (see the spec's "Demo script" section) end to
+end, in one process, against the real server through a real MCP client — the same
+`InMemoryTransport` wiring `__tests__/server.test.ts` uses, not a hand-rolled shortcut.
+
+- **Run it:** `FLOAT_LIVE=1 npm run demo:agent` (equivalent to
+  `FLOAT_LIVE=1 npx tsx --env-file=.env demo/agent/run.ts`) from this directory, with
+  `.env` filled in for every layer the six beats touch (Graph, Hedera, Privy). The
+  script does **not** set `FLOAT_LIVE`/`DRY_RUN` itself — it asserts, via a real
+  `float_status()` tool call, that the server is already reporting `mode: 'live'`
+  before beat 1, and refuses to run otherwise. A forgotten flag never produces a demo
+  narrated as real settlement while every write is actually synthetic.
+- **Presentation rule** (hard constraint, asserted in `demo/agent/__tests__/`): the
+  agent's rendered view names zero chains and zero asset tickers — only the verbs
+  `pay`, `transfer`, `denied`, `awaiting_device`, plus tool names that carry no banned
+  token (`transfer_usdc` is always shown as `transfer` — its own name isn't safe).
+  Chain names, deployment/account/topic ids, tx hashes and HashScan/Arcscan links
+  appear exactly once, in a separate auditor view (`demo/agent/auditorView.ts`).
+  `demo/agent/sanitize.ts`'s `assertAgentSafe` throws rather than silently rewriting if
+  a chain name would ever reach the agent view.
+- **Beat 4's "child"** (`spend()`, `layers/policy/engine.ts`) is not a second MCP
+  tool call — `spend` is explicitly not an MCP tool in this system, exercised directly
+  the same way `layers/policy/live-verify.ts` already does, since `grant_budget` is
+  root-only and a child's own overspend attempt has nowhere else to be called from.
+- **Cost:** printed at the end of every run. A denied call costs nothing; the only
+  real spends are one HTS allowance-update fee (`grant_budget`, re-granting an
+  existing child rather than minting a new one) and, when beat 3 succeeds, one x402
+  payment. Beat 5 (`transfer_usdc`) is deliberately sized to always exceed the hot
+  wallet's float, so it never executes a chain write.
+
+`plugin/` is a thin Claude Code plugin wrapping this same server over the real stdio
+transport (`.claude-plugin/plugin.json`) — a distribution convenience, never the
+headline. Test with `claude --plugin-dir plugin/` from this directory (needs `.env`
+here), or run `npm test` — `plugin/__tests__/stdio.test.ts` spawns the exact command
+the manifest declares (`npx tsx src/index.ts`) through a real `StdioClientTransport`
+and calls `float_status()` over it, the one path that had never been exercised by any
+real MCP client before this ticket.

@@ -1,9 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
+
+// Mirrors layers/policy/state.ts's own (unexported) LIVE_LOCK_DIR name --
+// polling for this directory on disk is ground truth for "the lock is
+// actually held", unlike a stdio marker from the child (which could in
+// principle be delayed by pipe buffering one more hop than a direct fs
+// check on the same filesystem this test itself is running on).
+const LIVE_LOCK_DIR_NAME = '.hedera.live-lock';
+
+async function waitFor(predicate: () => boolean, timeoutMs: number, describeFailure: string): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for: ${describeFailure}`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
 
 // #21: proves, with two REAL concurrent OS processes racing on one shared
 // state directory (not two in-process calls — the incident was two
@@ -57,10 +72,35 @@ describe('bootstrap state lock closes the concurrent-mint race (#21)', () => {
   it('a live-run lock held by one process fails the second fast, naming the holder', async () => {
     const stateDir = mkdtempSync(join(tmpdir(), 'float-mcp-live-lock-'));
     try {
-      const first = runProbe('live-lock', stateDir, 300);
-      // Give the first probe a moment to actually take the lock before the
-      // second one tries — this proves fail-fast, not "eventually acquires".
-      await new Promise((r) => setTimeout(r, 80));
+      // Wait for the lock directory to actually exist on disk rather than a
+      // fixed sleep — a flat delay races real process-spawn time under CI
+      // load (node/tsx startup routinely exceeds tens of ms under load), and
+      // a second probe that wins that race falsifies the "fails fast" claim
+      // this test exists to prove. Polling the filesystem directly (not a
+      // stdio marker from the child) is ground truth: no pipe-buffering hop
+      // between "the lock is held" and this test observing it.
+      // 3s, not the 300ms this used to hold for: CI observed the SECOND
+      // probe's own cold start (spawn + tsx/esbuild transform + module
+      // resolution for layers/policy/state.js) taking long enough to
+      // outlast a 300ms hold, so the lock was already released by the time
+      // it tried -- a false pass on "fails fast" (it just never contended).
+      // 3s gives that startup all the margin it needs even under load.
+      const firstChild = spawn(tsxBin, [probePath, 'live-lock', '3000'], {
+        env: { ...process.env, VITEST: '', FLOAT_STATE_DIR: stateDir },
+      });
+      let firstStdout = '';
+      let firstStderr = '';
+      firstChild.stdout.on('data', (d) => (firstStdout += d));
+      firstChild.stderr.on('data', (d) => (firstStderr += d));
+      const first = new Promise<Record<string, unknown>>((resolve, reject) => {
+        firstChild.on('close', (code) => {
+          if (code !== 0) return reject(new Error(`probe live-lock exited ${code}: ${firstStderr}`));
+          resolve(JSON.parse(firstStdout));
+        });
+      });
+      const lockDirPath = join(stateDir, LIVE_LOCK_DIR_NAME);
+      await waitFor(() => existsSync(lockDirPath), 5000, `${lockDirPath} to exist (stderr so far: ${firstStderr})`);
+
       const second = await runProbe('live-lock', stateDir, 0);
 
       expect(second.acquired).toBe(false);

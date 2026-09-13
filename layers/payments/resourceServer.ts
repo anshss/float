@@ -15,6 +15,7 @@ import type { SignalStore } from '../../src/contracts.js';
 import type { SignalDigestStore } from '../perception/signalDigest.js';
 import { counterpartyRisk } from '../perception/tools.js';
 import { getFeePayer, verify, settle, settlementTxId, type FacilitatorDeps } from './facilitator.js';
+import { loadState } from '../policy/state.js';
 
 export const PREMIUM_RISK_PATH_PREFIX = '/premium/counterparty-risk/';
 const PRICE_TINYBAR = '50000'; // 0.0005 HBAR — half the rail-proof's demo amount.
@@ -40,7 +41,21 @@ function json(res: ServerResponse, status: number, body: unknown): void {
 
 function payTo(deps: ResourceServerDeps): string {
   return (
-    deps.payToId ?? deps.config.raw.FLOAT_PAYTO_ID ?? deps.config.raw.HEDERA_TREASURY_ID ?? deps.config.raw.HEDERA_OPERATOR_ID ?? ''
+    deps.payToId ??
+    deps.config.raw.FLOAT_PAYTO_ID ??
+    deps.config.raw.HEDERA_TREASURY_ID ??
+    // The policy layer bootstraps its own treasury into `.state/hedera.json`
+    // rather than ever setting `HEDERA_TREASURY_ID` as an env var (see
+    // layers/policy/state.ts and src/config.ts's `dryRun` doc comment), so
+    // the env fallback above never resolves in normal operation and this
+    // used to fall straight through to HEDERA_OPERATOR_ID -- the same
+    // account `pay()` signs FROM (layers/payments/pay.ts), making every
+    // live payment a self-transfer the facilitator correctly rejects as
+    // `invalid_exact_hedera_payload_amount_mismatch`. Read the real
+    // bootstrapped treasury before falling back to the operator id.
+    loadState().treasury?.accountId ??
+    deps.config.raw.HEDERA_OPERATOR_ID ??
+    ''
   );
 }
 

@@ -9,6 +9,7 @@ import { readLockfile, getPinned, type Lockfile } from './pin.js';
 import { demoCoreEntries, findSubgraph, DEMO_CORE_SLUGS } from './registry.js';
 import { fetchTopicMessages, decodeAuditMessage } from './mirrorNode.js';
 import { digestResult, type SignalDigestStore } from './signalDigest.js';
+import { loadState } from '../policy/state.js';
 
 export type PerceptionDeps = {
   config: FloatConfig;
@@ -338,11 +339,22 @@ export async function spendHistory(
   // Backend is Hedera Mirror Node, never The Graph — The Graph does not index
   // Hedera. Land the client + shape here; #4 fills in receipt semantics once
   // #3's audit topic exists.
-  const topicId = deps.config.raw.HEDERA_TOPIC_ID;
+  //
+  // Env wins when explicitly set (an operator can point a run at a
+  // pre-existing topic); otherwise fall back to whatever the policy layer's
+  // own bootstrap persisted, exactly as `layers/policy/status.ts` already
+  // resolves treasury/topic ids for `float_status`. Reading the env var only
+  // meant this tool denied even once the audit topic genuinely existed and
+  // had real receipts on it (created by `grant_budget`/`pay`/etc, which all
+  // bootstrap through the SAME state) — a chained-call demo run surfaces
+  // this the moment beat 6 (`spend_history`) follows beats that already
+  // wrote to that very topic; an isolated unit test setting the env var
+  // directly never would.
+  const topicId = deps.config.raw.HEDERA_TOPIC_ID ?? loadState().topicId ?? undefined;
   if (!topicId) {
     return denied(
       'deployment_unavailable',
-      "HEDERA_TOPIC_ID not configured — spend_history reads Float's own receipts on HCS via Mirror Node, which requires the policy layer's audit topic (see #3)",
+      "no HCS audit topic configured or bootstrapped yet — spend_history reads Float's own receipts on HCS via Mirror Node, which requires the policy layer's audit topic (see layers/policy/bootstrap.ts)",
     );
   }
 
