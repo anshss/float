@@ -13,6 +13,7 @@ import { InMemorySignalDigestStore, type SignalDigestStore } from '../layers/per
 import { compareMarkets, queryPosition, counterpartyRisk, spendHistory } from '../layers/perception/tools.js';
 import { readLockfile, validateDemoCore } from '../layers/perception/pin.js';
 import { grantBudget } from '../layers/policy/engine.js';
+import { getPolicyStatus } from '../layers/policy/status.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -73,18 +74,27 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     {
       title: 'Float status',
       description:
-        'Reports Float server health: which config layers are configured, active caps, DRY_RUN state, pending confirmations, lockfile verification status, and demo-core deployment health. Never returns key material.',
+        'Reports Float server health: which config layers are configured, active caps, DRY_RUN state, pending confirmations, lockfile verification status, demo-core deployment health, and the policy layer\'s ground-truth Hedera state (treasury/topic ids, per-agent ceilings and live allowance remaining). Never returns key material.',
     },
     async () => {
       const lockfile = verifyLockfile();
+      // `config.configured.hedera` is env-var presence only (it also gates
+      // the DRY_RUN safety default in src/config.ts — left untouched here).
+      // The policy layer self-bootstraps treasury/topic ids into its own
+      // state rather than into env, so float_status reports ground truth —
+      // ids and live allowance remaining, not env-var presence — in the
+      // `hedera` field, and reflects that same ground truth back into
+      // `configured.hedera` for callers that only look at the summary flag.
+      const hedera = await getPolicyStatus(config);
       return toCallToolResult(
         ok({
           dryRun: config.dryRun,
-          configured: config.configured,
+          configured: { ...config.configured, hedera: hedera.configured },
           caps: config.caps,
           pendingConfirmations: [] as string[],
           lockfile,
           demoCoreHealth,
+          hedera,
         }),
       );
     },

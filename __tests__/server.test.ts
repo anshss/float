@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFloatServer } from '../src/server.js';
 import { loadConfig } from '../src/config.js';
-import { resetStateForTests } from '../layers/policy/state.js';
+import { loadState, resetStateForTests, saveState } from '../layers/policy/state.js';
 
 const V1_TOOLS = [
   'float_status',
@@ -57,6 +57,38 @@ describe('float-mcp server (in-process MCP client)', () => {
     await connect(loadConfig({ HEDERA_OPERATOR_KEY: 'super-secret-key' }));
     const result = await client.callTool({ name: 'float_status', arguments: {} });
     expect(JSON.stringify(result)).not.toContain('super-secret-key');
+  });
+
+  it('float_status() reports Hedera configured with ids/ceilings from bootstrap state, no HEDERA_TREASURY_*/_TOPIC_ID env set (#11)', async () => {
+    resetStateForTests();
+    const state = loadState();
+    state.treasury = { accountId: '0.0.999001', privateKey: 'unused-in-tests' };
+    state.topicId = '0.0.999002';
+    state.agents['child-a'] = { accountId: '0.0.999003', privateKey: 'unused-in-tests' };
+    state.policies['child-a'] = {
+      agentId: 'child-a',
+      parentId: 'root',
+      ceilingHbar: 3,
+      period: 'unbounded',
+      scope: 'lending',
+      thresholdForHuman: null,
+      allowanceTx: '0.0.1@1.1',
+      grantedAt: new Date().toISOString(),
+      revoked: false,
+    };
+    saveState(state);
+
+    await connect(loadConfig({ DRY_RUN: '1', HEDERA_OPERATOR_ID: '0.0.1', HEDERA_OPERATOR_KEY: 'k' }));
+    const result = await client.callTool({ name: 'float_status', arguments: {} });
+    const body = parseTextResult(result);
+    expect(body.data.configured.hedera).toBe(true);
+    expect(body.data.hedera.treasury_account_id).toBe('0.0.999001');
+    expect(body.data.hedera.treasury_source).toBe('state');
+    expect(body.data.hedera.topic_id).toBe('0.0.999002');
+    expect(body.data.hedera.agents).toEqual([
+      { agent_id: 'child-a', account_id: '0.0.999003', scope: 'lending', ceiling_hbar: 3, remaining_hbar: null, revoked: false },
+    ]);
+    expect(JSON.stringify(body)).not.toContain('unused-in-tests');
   });
 
   const stubTools: Array<[string, Record<string, string>]> = [
