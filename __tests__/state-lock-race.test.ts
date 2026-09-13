@@ -57,10 +57,35 @@ describe('bootstrap state lock closes the concurrent-mint race (#21)', () => {
   it('a live-run lock held by one process fails the second fast, naming the holder', async () => {
     const stateDir = mkdtempSync(join(tmpdir(), 'float-mcp-live-lock-'));
     try {
-      const first = runProbe('live-lock', stateDir, 300);
-      // Give the first probe a moment to actually take the lock before the
-      // second one tries — this proves fail-fast, not "eventually acquires".
-      await new Promise((r) => setTimeout(r, 80));
+      // Wait for the first probe's own "I actually hold the lock now" signal
+      // rather than a fixed sleep — a flat delay races real process-spawn
+      // time under CI load (node/tsx startup routinely exceeds tens of ms
+      // under load), and a second probe that wins that race falsifies the
+      // "fails fast" claim this test exists to prove.
+      const firstChild = spawn(tsxBin, [probePath, 'live-lock', '300'], {
+        env: { ...process.env, VITEST: '', FLOAT_STATE_DIR: stateDir },
+      });
+      let firstStdout = '';
+      let firstStderr = '';
+      firstChild.stdout.on('data', (d) => (firstStdout += d));
+      firstChild.stderr.on('data', (d) => (firstStderr += d));
+      const first = new Promise<Record<string, unknown>>((resolve, reject) => {
+        firstChild.on('close', (code) => {
+          if (code !== 0) return reject(new Error(`probe live-lock exited ${code}: ${firstStderr}`));
+          resolve(JSON.parse(firstStdout));
+        });
+      });
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`first probe never signalled LOCK_ACQUIRED (stderr so far: ${firstStderr})`)), 5000);
+        firstChild.stderr.on('data', function check() {
+          if (firstStderr.includes('LOCK_ACQUIRED')) {
+            clearTimeout(timer);
+            firstChild.stderr.off('data', check);
+            resolve();
+          }
+        });
+      });
+
       const second = await runProbe('live-lock', stateDir, 0);
 
       expect(second.acquired).toBe(false);

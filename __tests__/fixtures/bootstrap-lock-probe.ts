@@ -32,6 +32,12 @@ async function runStateLockMode(): Promise<void> {
 async function runLiveLockMode(): Promise<void> {
   try {
     const release = acquireLiveRunLock('probe live flow');
+    // Signals the parent test that the lock is actually held, so it can
+    // launch the second probe right then instead of guessing how long this
+    // process took to spawn and reach this line -- a fixed external sleep
+    // there raced real process-startup time under load and let the second
+    // probe acquire first (see state-lock-race.test.ts).
+    process.stderr.write('LOCK_ACQUIRED\n');
     await sleep(Number(mintDelayMs));
     release();
     process.stdout.write(JSON.stringify({ acquired: true }));
