@@ -18,10 +18,11 @@
 // needed), else this checkout's own `.state/` with a loud warning that it
 // won't survive a reap if this ever does turn out to be a worktree.
 
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { acquireBlocking, acquireFailFast, type Release } from './lock.js';
 
 const THIS_CHECKOUT_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -96,6 +97,17 @@ function resolveStateDir(): string {
 
 const STATE_DIR = resolveStateDir();
 const STATE_FILE = join(STATE_DIR, 'hedera.json');
+// #21: separate from the ad-hoc manual backup an operator might keep
+// elsewhere — this one is maintained by `saveState` itself, on every write.
+const BACKUPS_DIR = join(STATE_DIR, '.backups');
+const MAX_BACKUPS = 10;
+// Two distinct locks, not one: STATE_LOCK_DIR guards the JSON file's own
+// load/modify/save cycle (blocking — these are short, so a brief wait is
+// fine); LIVE_LOCK_DIR guards an entire live Hedera flow end to end
+// (fail-fast — see `acquireLiveRunLock`'s doc comment for why the two need
+// different acquisition semantics).
+const STATE_LOCK_DIR = join(STATE_DIR, '.hedera.lock');
+const LIVE_LOCK_DIR = join(STATE_DIR, '.hedera.live-lock');
 
 export type AgentAccount = {
   accountId: string;
@@ -143,13 +155,113 @@ export function loadState(): PolicyState {
   }
 }
 
+/** Copies the CURRENT on-disk state into `.backups/` before it gets
+ * overwritten, then prunes to the newest `MAX_BACKUPS`. #21: a lock closes
+ * the race that clobbers this file; a backup is the second line of defence
+ * for everything a lock can't cover (a bad write, a bug, an operator
+ * mistake) — it is what would have made the 28-HBAR loss recoverable. */
+function backupCurrentStateFile(): void {
+  if (!existsSync(STATE_FILE)) return;
+  mkdirSync(BACKUPS_DIR, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  copyFileSync(STATE_FILE, join(BACKUPS_DIR, `hedera.${stamp}.json`));
+  const files = readdirSync(BACKUPS_DIR)
+    .filter((f) => f.startsWith('hedera.') && f.endsWith('.json'))
+    .sort();
+  for (const stale of files.slice(0, Math.max(0, files.length - MAX_BACKUPS))) {
+    rmSync(join(BACKUPS_DIR, stale), { force: true });
+  }
+}
+
+/** Backs up the outgoing file, then writes the new one to a temp path and
+ * `rename()`s it into place — same directory, so same filesystem, so the
+ * rename is atomic. A reader always sees either the old, fully-formed file
+ * or the new one, never a half-written one (#21: a half-written state file
+ * is as bad as a clobbered one). Callers that need the whole
+ * load-decide-save cycle to be race-free (not just this one write) must go
+ * through `withStateLock`. */
 export function saveState(state: PolicyState): void {
   const isFirstWrite = !existsSync(STATE_FILE);
   mkdirSync(STATE_DIR, { recursive: true });
-  writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), { mode: 0o600 });
+  backupCurrentStateFile();
+  const tmpFile = join(STATE_DIR, `.hedera.json.tmp-${process.pid}-${Date.now()}`);
+  writeFileSync(tmpFile, JSON.stringify(state, null, 2), { mode: 0o600 });
+  renameSync(tmpFile, STATE_FILE);
   if (isFirstWrite) {
     console.error(`[float-mcp/policy] wrote bootstrap state for the first time: ${STATE_FILE}`);
   }
+}
+
+export type StateMutation<T> = {
+  /** The new state to persist, or `null` to leave the file untouched (a
+   * read-only decision — e.g. the refuse-to-mint guard finding a reason to
+   * stop before writing anything). */
+  save: PolicyState | null;
+  result: T;
+};
+
+/** Holds `STATE_LOCK_DIR` across the ENTIRE load/decide/save cycle, not
+ * just the write. #21's actual bug was read-null -> mint -> save with no
+ * lock at all: two processes both read null and both minted, because
+ * nothing serialized the decision itself. `fn` gets the freshly-loaded
+ * state and returns what (if anything) to persist; the lock is not
+ * released until that decision — mint included, when `fn` mints — is
+ * fully made. */
+export async function withStateLock<T>(purpose: string, fn: (state: PolicyState) => Promise<StateMutation<T>>): Promise<T> {
+  const release = await acquireBlocking(STATE_LOCK_DIR, purpose);
+  try {
+    const state = loadState();
+    const { save, result } = await fn(state);
+    if (save) saveState(save);
+    return result;
+  } finally {
+    release();
+  }
+}
+
+/** Fail-fast mutex for a whole live (non-DRY_RUN) Hedera flow — bootstrap's
+ * mint decisions, in particular. Distinct from `withStateLock`'s blocking
+ * mutex: a second live process should never sit there waiting and then act
+ * on a decision made before the first process finished — it should refuse
+ * immediately and say who is holding it. Throws `LockHeldError` if held. */
+export function acquireLiveRunLock(purpose: string): Release {
+  return acquireFailFast(LIVE_LOCK_DIR, purpose);
+}
+
+export type BackupTreasuryHit = {
+  backupPath: string;
+  backupTreasuryId: string;
+  backupSavedAt: string;
+};
+
+/** #21's refuse-to-mint guard: if the CURRENT state has no treasury but the
+ * most recent backup that does still exists, minting a new one would very
+ * likely orphan whatever the backed-up treasury still holds. Scans
+ * newest-first and returns the first hit; corrupt/unreadable backups are
+ * skipped rather than treated as absent (never let a bad backup file read
+ * as "no risk found"). */
+export function findMostRecentBackupWithTreasury(): BackupTreasuryHit | null {
+  if (!existsSync(BACKUPS_DIR)) return null;
+  const files = readdirSync(BACKUPS_DIR)
+    .filter((f) => f.startsWith('hedera.') && f.endsWith('.json'))
+    .sort()
+    .reverse();
+  for (const file of files) {
+    const path = join(BACKUPS_DIR, file);
+    try {
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as PolicyState;
+      if (parsed.treasury?.accountId) {
+        return {
+          backupPath: path,
+          backupTreasuryId: parsed.treasury.accountId,
+          backupSavedAt: file.slice('hedera.'.length, -'.json'.length),
+        };
+      }
+    } catch {
+      continue;
+    }
+  }
+  return null;
 }
 
 /** Test-only: wipes persisted state so hierarchy-invariant tests don't
