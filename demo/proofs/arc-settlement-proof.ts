@@ -4,7 +4,8 @@
 // doesn't natively list (Arc, defined here purely via `defineChain`)? Privy's
 // docs take no position either way; this script is the only evidence.
 //
-// R6 VERDICT (recorded live, see arc-settlement-proof.output.md): NEGATIVE.
+// R6 VERDICT (recorded live, see arc-settlement-proof.output.md and the full
+// reproducible bug report in PRIVY-ARC-POLICY-BUG.md): NEGATIVE.
 // Privy's wallet-RPC does receive and evaluate the request on Arc -- a
 // genuine PrivyAPIError comes back, sourced from Privy, never synthesized --
 // but with ANY policy attached it denies every eth_sendTransaction
