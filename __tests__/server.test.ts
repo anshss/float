@@ -121,9 +121,9 @@ describe('float-mcp server (in-process MCP client)', () => {
     expect(body.data.mode).toBe('live');
   });
 
-  const stubTools: Array<[string, Record<string, string>]> = [
-    ['transfer_usdc', { to: '0xabc', amount: '1', signal_ref: 'sig_1' }],
-  ];
+  // grant_budget, pay and transfer_usdc are all implemented for real now
+  // (C3/C4/C5) -- nothing left to exercise generically as a bare stub.
+  const stubTools: Array<[string, Record<string, string>]> = [];
 
   it.each(stubTools)('%s returns a structured deployment_unavailable denial, never throws', async (name, args) => {
     await connect();
@@ -187,6 +187,24 @@ describe('float-mcp server (in-process MCP client)', () => {
       arguments: { child_id: 'child-server-2', ceiling: '999999', scope: 'lending' },
     });
     expect(parseTextResult(over)).toMatchObject({ denied: true, reason: 'ceiling_exceeded' });
+  });
+
+  // transfer_usdc is implemented for real by C5 (see
+  // layers/settlement/__tests__/transferUsdc.test.ts for full coverage) —
+  // here we only check the seam still returns a structured denial through
+  // the live MCP protocol, with no signal store entry to cite.
+  it('transfer_usdc() denies with no_signal_cited when signal_ref is unknown', async () => {
+    await connect(loadConfig({}));
+    const result = await client.callTool({
+      name: 'transfer_usdc',
+      arguments: { to: '0xabc', amount: '1', signal_ref: 'sig_unknown' },
+    });
+    const body = parseTextResult(result);
+    expect(body).toEqual({
+      denied: true,
+      reason: 'no_signal_cited',
+      detail: 'signal_ref "sig_unknown" does not resolve to a known perception-layer query result',
+    });
   });
 
   it('confirm_pending() (no args) returns a structured denial', async () => {
