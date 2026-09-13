@@ -30,7 +30,7 @@ export function verifyLockfile(filePath: string = LOCKFILE_PATH): LockfileStatus
     return {
       verified: true,
       hash,
-      detail: `${parsed.liveCount}/${parsed.totalDeployments} deployments live, pinned at ${parsed.pinnedAt}`,
+      detail: `${parsed.liveCount}/${parsed.totalDeployments} deployments live (${parsed.emptyCount} empty, ${parsed.deadCount} dead), pinned at ${parsed.pinnedAt}`,
     };
   } catch {
     return { verified: false, hash, detail: 'deployments.lock.json is not valid JSON' };

@@ -17,9 +17,16 @@ async function main() {
   writeLockfile(lockfile);
 
   console.log(
-    `pin: wrote ${LOCKFILE_PATH} — ${lockfile.liveCount}/${lockfile.totalDeployments} deployments live, ${lockfile.deadCount} dead`,
+    `pin: wrote ${LOCKFILE_PATH} — ${lockfile.liveCount}/${lockfile.totalDeployments} deployments live, ${lockfile.emptyCount} empty, ${lockfile.deadCount} dead`,
   );
-  const dead = Object.values(lockfile.deployments).filter((d) => !d.live);
+  const empty = Object.values(lockfile.deployments).filter((d) => d.status === 'empty');
+  if (empty.length > 0) {
+    console.log('pin: empty deployments — resolve fine but return zero rows (reported, not dropped, never counted as live):');
+    for (const d of empty) {
+      console.log(`  - ${d.slug} (${d.network}): ${d.reason}`);
+    }
+  }
+  const dead = Object.values(lockfile.deployments).filter((d) => d.status === 'dead');
   if (dead.length > 0) {
     console.log('pin: dead deployments (reported, not dropped):');
     for (const d of dead) {

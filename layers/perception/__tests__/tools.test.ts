@@ -7,35 +7,39 @@ import { findSubgraph } from '../registry.js';
 import { fixtureFetch, loadFixture, isOk } from './fixtures.js';
 import type { Lockfile } from '../pin.js';
 
+// All five demo-core deployments live and populated after #10's swap
+// (aave-v3-base → aave-v3-polygon).
 const DEMO_CORE_LOCKFILE: Lockfile = {
   pinnedAt: '2026-09-13T00:00:00.000Z',
   totalDeployments: 5,
-  liveCount: 4,
-  deadCount: 1,
+  liveCount: 5,
+  emptyCount: 0,
+  deadCount: 0,
   deployments: {
     'aave-v3-ethereum': {
       slug: 'aave-v3-ethereum',
       network: 'MAINNET',
       subgraphId: findSubgraph('aave-v3-ethereum')!.subgraphId,
       schemaVersion: '3.1.0',
-      live: true,
+      status: 'live',
       deploymentId: 'QmcXE5QVcBcvcaJddPxd8mFs6W9xt7STmwfgguoiM6ddAd',
       blockNumber: 25968792,
     },
-    'aave-v3-base': {
-      slug: 'aave-v3-base',
-      network: 'BASE',
-      subgraphId: findSubgraph('aave-v3-base')!.subgraphId,
+    'aave-v3-polygon': {
+      slug: 'aave-v3-polygon',
+      network: 'MATIC',
+      subgraphId: findSubgraph('aave-v3-polygon')!.subgraphId,
       schemaVersion: '3.1.0',
-      live: false,
-      error: 'subgraph not found: no allocations',
+      status: 'live',
+      deploymentId: 'QmZvndp7kSUaMZo3W21bLyggU8wpcYG5LXBbGvu21t4cvD',
+      blockNumber: 93734525,
     },
     'aave-v3-arbitrum': {
       slug: 'aave-v3-arbitrum',
       network: 'ARBITRUM_ONE',
       subgraphId: findSubgraph('aave-v3-arbitrum')!.subgraphId,
       schemaVersion: '3.1.0',
-      live: true,
+      status: 'live',
       deploymentId: 'QmUGh2BNwmiLgd9r81pz7f1khe18fondJUSbsFHfKvhrvk',
       blockNumber: 504747867,
     },
@@ -44,7 +48,7 @@ const DEMO_CORE_LOCKFILE: Lockfile = {
       network: 'MAINNET',
       subgraphId: findSubgraph('compound-v3-ethereum')!.subgraphId,
       schemaVersion: '3.1.0',
-      live: true,
+      status: 'live',
       deploymentId: 'QmNrQoow7pjM3biRnnhzeCaDYhuEbDyjKCpFeNv2oGXnuK',
       blockNumber: 25968793,
     },
@@ -53,9 +57,31 @@ const DEMO_CORE_LOCKFILE: Lockfile = {
       network: 'ARBITRUM_ONE',
       subgraphId: findSubgraph('compound-v3-arbitrum')!.subgraphId,
       schemaVersion: '3.1.0',
-      live: true,
+      status: 'live',
       deploymentId: 'QmQURwBj3C9RRX3Th5MqTGehSSUcfnRgw3r8Sg2XWcjmjB',
       blockNumber: 504747863,
+    },
+  },
+};
+
+// Same five, but compound-v3-arbitrum resolves fine and returns zero rows —
+// the real aave-v3-optimism failure mode #10 fixes, reproduced on a
+// demo-core member so compareMarkets's coverage.empty output is exercised.
+const LOCKFILE_WITH_EMPTY_MEMBER: Lockfile = {
+  ...DEMO_CORE_LOCKFILE,
+  liveCount: 4,
+  emptyCount: 1,
+  deployments: {
+    ...DEMO_CORE_LOCKFILE.deployments,
+    'compound-v3-arbitrum': {
+      slug: 'compound-v3-arbitrum',
+      network: 'ARBITRUM_ONE',
+      subgraphId: findSubgraph('compound-v3-arbitrum')!.subgraphId,
+      schemaVersion: '3.1.0',
+      status: 'empty',
+      deploymentId: 'QmQURwBj3C9RRX3Th5MqTGehSSUcfnRgw3r8Sg2XWcjmjB',
+      blockNumber: 504747863,
+      reason: 'markets query returned zero rows',
     },
   },
 };
@@ -75,7 +101,7 @@ function makeDeps(overrides: Partial<Parameters<typeof compareMarkets>[1]> = {})
 // own narrower maps below, since both address queries hit the same endpoint).
 const MARKETS_FIXTURES = {
   [findSubgraph('aave-v3-ethereum')!.subgraphId]: { markets: loadFixture('markets.aave-v3-ethereum.json') },
-  [findSubgraph('aave-v3-base')!.subgraphId]: { meta: loadFixture('meta.aave-v3-base.json') },
+  [findSubgraph('aave-v3-polygon')!.subgraphId]: { markets: loadFixture('markets.aave-v3-polygon.json') },
   [findSubgraph('aave-v3-arbitrum')!.subgraphId]: { markets: loadFixture('markets.aave-v3-arbitrum.json') },
   [findSubgraph('compound-v3-ethereum')!.subgraphId]: { markets: loadFixture('markets.compound-v3-ethereum.json') },
   [findSubgraph('compound-v3-arbitrum')!.subgraphId]: { markets: loadFixture('markets.compound-v3-arbitrum.json') },
@@ -87,6 +113,7 @@ const POSITION_FIXTURES = {
 
 const RISK_FIXTURES = {
   [findSubgraph('aave-v3-ethereum')!.subgraphId]: { account: loadFixture('account.counterparty_risk.json') },
+  [findSubgraph('aave-v3-polygon')!.subgraphId]: { account: { data: { account: null } } },
   [findSubgraph('aave-v3-arbitrum')!.subgraphId]: { account: { data: { account: null } } },
   [findSubgraph('compound-v3-ethereum')!.subgraphId]: { account: { data: { account: null } } },
   [findSubgraph('compound-v3-arbitrum')!.subgraphId]: { account: { data: { account: null } } },
@@ -110,14 +137,14 @@ describe('compareMarkets', () => {
     });
   });
 
-  it('ranks live rates by LENDER/VARIABLE and reports the dead deployment, never dropping it', async () => {
+  it('returns five populated rows across the swapped demo-core set (aave-v3-polygon, not aave-v3-base)', async () => {
     const deps = makeDeps({ fetchImpl: fixtureFetch(MARKETS_FIXTURES) });
     const result = await compareMarkets({ schema_family: 'lending' }, deps);
     expect(isOk(result)).toBe(true);
     if (!isOk(result)) return;
     const data = result.data as {
-      rankedRates: Array<{ rate: number; deploymentId: string }>;
-      coverage: { live: string[]; dead: Array<{ slug: string }> };
+      rankedRates: Array<{ rate: number; deploymentId: string; slug: string }>;
+      coverage: { live: string[]; empty: Array<{ slug: string }>; dead: Array<{ slug: string }> };
       signalRef: string;
     };
     expect(data.rankedRates.length).toBeGreaterThan(0);
@@ -125,8 +152,12 @@ describe('compareMarkets', () => {
     for (let i = 1; i < data.rankedRates.length; i++) {
       expect(data.rankedRates[i - 1].rate).toBeGreaterThanOrEqual(data.rankedRates[i].rate);
     }
-    expect(data.coverage.live).toContain('aave-v3-ethereum');
-    expect(data.coverage.dead.some((d) => d.slug === 'aave-v3-base')).toBe(true);
+    expect(data.coverage.live.sort()).toEqual(
+      ['aave-v3-ethereum', 'aave-v3-polygon', 'aave-v3-arbitrum', 'compound-v3-ethereum', 'compound-v3-arbitrum'].sort(),
+    );
+    expect(data.coverage.empty).toEqual([]);
+    expect(data.coverage.dead).toEqual([]);
+    expect(data.rankedRates.some((r) => r.slug === 'aave-v3-polygon')).toBe(true);
     expect(result.provenance?.source).toBe('graph');
 
     // Signal + digest were both recorded.
@@ -135,6 +166,23 @@ describe('compareMarkets', () => {
     const digest = deps.digestStore.get(data.signalRef);
     expect(digest?.digest).toHaveLength(64);
     expect(digest?.rankedHead).toEqual(data.rankedRates.slice(0, 5));
+  });
+
+  it('reports an empty-but-resolving deployment separately from live, never counting it as coverage', async () => {
+    const deps = makeDeps({
+      fetchImpl: fixtureFetch(MARKETS_FIXTURES),
+      readLockfileImpl: () => LOCKFILE_WITH_EMPTY_MEMBER,
+    });
+    const result = await compareMarkets({ schema_family: 'lending' }, deps);
+    expect(isOk(result)).toBe(true);
+    if (!isOk(result)) return;
+    const data = result.data as {
+      coverage: { live: string[]; empty: Array<{ slug: string; reason: string }>; dead: unknown[] };
+    };
+    expect(data.coverage.live).not.toContain('compound-v3-arbitrum');
+    expect(data.coverage.empty).toEqual([
+      { slug: 'compound-v3-arbitrum', reason: 'markets query returned zero rows' },
+    ]);
   });
 });
 
@@ -166,12 +214,24 @@ describe('queryPosition', () => {
     });
   });
 
-  it('denies when the deployment for that protocol is not live', async () => {
+  it('denies with an empty-specific message when the deployment resolves but returns zero rows', async () => {
+    const result = await queryPosition(
+      { protocol: 'compound-v3-arbitrum', address: '0xabc' },
+      makeDeps({ readLockfileImpl: () => LOCKFILE_WITH_EMPTY_MEMBER }),
+    );
+    expect(result).toEqual({
+      denied: true,
+      reason: 'deployment_unavailable',
+      detail: 'deployment for compound-v3-arbitrum resolves but is empty: markets query returned zero rows',
+    });
+  });
+
+  it('denies with a dead-specific message when the deployment is unreachable', async () => {
     const result = await queryPosition({ protocol: 'aave-v3-base', address: '0xabc' }, makeDeps());
     expect(result).toEqual({
       denied: true,
       reason: 'deployment_unavailable',
-      detail: 'deployment for aave-v3-base is not pinned or not live',
+      detail: 'deployment for aave-v3-base is not pinned',
     });
   });
 });

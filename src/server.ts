@@ -11,6 +11,7 @@ import { loadConfig, type FloatConfig } from './config.js';
 import { verifyLockfile } from './lockfile.js';
 import { InMemorySignalDigestStore, type SignalDigestStore } from '../layers/perception/signalDigest.js';
 import { compareMarkets, queryPosition, counterpartyRisk, spendHistory } from '../layers/perception/tools.js';
+import { readLockfile, validateDemoCore } from '../layers/perception/pin.js';
 
 /** Wraps a ToolResult (ok or denial) into the MCP protocol's CallToolResult
  * envelope. Denials are never surfaced as protocol-level errors (`isError`)
@@ -53,13 +54,25 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     version: '0.0.0',
   });
 
+  // Demo-core health is checked once at startup — a dead or empty member of
+  // the five deployments the demo narrates is logged loudly here rather than
+  // silently rendering a hole in compare_markets later (#10).
+  const demoCoreHealth = validateDemoCore(readLockfile());
+  if (!demoCoreHealth.ok) {
+    console.error(
+      `float-mcp: demo-core deployment problem — ${demoCoreHealth.problems
+        .map((p) => `${p.slug}: ${p.status} (${p.detail})`)
+        .join('; ')}`,
+    );
+  }
+
   // float_status() — C1, implemented for real.
   server.registerTool(
     'float_status',
     {
       title: 'Float status',
       description:
-        'Reports Float server health: which config layers are configured, active caps, DRY_RUN state, pending confirmations, and lockfile verification status. Never returns key material.',
+        'Reports Float server health: which config layers are configured, active caps, DRY_RUN state, pending confirmations, lockfile verification status, and demo-core deployment health. Never returns key material.',
     },
     async () => {
       const lockfile = verifyLockfile();
@@ -70,6 +83,7 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
           caps: config.caps,
           pendingConfirmations: [] as string[],
           lockfile,
+          demoCoreHealth,
         }),
       );
     },
