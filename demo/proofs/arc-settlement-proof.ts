@@ -4,35 +4,44 @@
 // doesn't natively list (Arc, defined here purely via `defineChain`)? Privy's
 // docs take no position either way; this script is the only evidence.
 //
+// R6 VERDICT (recorded live, see arc-settlement-proof.output.md): NEGATIVE.
+// Privy's wallet-RPC does receive and evaluate the request on Arc -- a
+// genuine PrivyAPIError comes back, sourced from Privy, never synthesized --
+// but with ANY policy attached it denies every eth_sendTransaction
+// unconditionally, regardless of the rule's own value/chain_id conditions.
+// Reproduced across three independent rule shapes (decimal value cap, hex
+// value cap, chain_id-only condition) and confirmed by the negative case: with
+// NO policy attached, an identical transfer succeeds cleanly. Per the
+// ticket's own fallback: the Privy server wallet is kept (hot-key custody
+// still counts), the wallet carries no Privy policy, and the per-transaction
+// float cap is enforced at the application layer instead (ceiling_exceeded,
+// see layers/settlement/transferUsdc.ts) -- the provider-enforced-cap claim
+// is dropped.
+//
 // Two phases, both idempotent:
-//   1. Provision (only runs while PRIVY_WALLET_ID is unset): creates a policy
-//      with a per-transaction USDC cap mirroring FLOAT_CAP_DEFAULT_USD, then a
-//      Privy server wallet owned by the 1-of-1 key quorum and gated by that
-//      policy. Prints the wallet id/address (never key material) and stops --
-//      the operator must fund the address via https://faucet.circle.com and
+//   1. Provision (only runs while PRIVY_WALLET_ID is unset): creates a Privy
+//      server wallet owned by the 1-of-1 key quorum, no policy attached.
+//      Prints the wallet id/address (never key material) and stops -- the
+//      operator must fund the address via https://faucet.circle.com and
 //      paste PRIVY_WALLET_ID/PRIVY_WALLET_ADDRESS into .env before phase 2.
 //   2. Proof: exercises transferUsdc() through the exact same code path
-//      src/server.ts calls, live against Arc testnet and Privy's real API --
-//      no signal_ref cited, over-cap, over-float, and (once funded) a real
-//      landed transfer with an arcscan link.
+//      src/server.ts calls, live against Arc testnet and Privy's real API.
 //
 // Usage: npm run proof:arc (see package.json). Never run in CI -- it moves
 // real (test) funds and depends on live Privy/Arc state.
 
 import { writeFileSync } from 'node:fs';
-import { formatUnits, parseUnits } from 'viem';
-import { createPublicClient, http } from 'viem';
+import { createPublicClient, formatUnits, http, parseUnits } from 'viem';
 import { loadConfig } from '../../src/config.js';
 import { InMemorySignalStore } from '../../src/contracts.js';
 import { InMemorySignalDigestStore, digestResult } from '../../layers/perception/signalDigest.js';
 import { transferUsdc } from '../../layers/settlement/transferUsdc.js';
-import { buildPrivyClient } from '../../layers/settlement/privyClient.js';
+import { buildAuthorizationContext, buildPrivyClient } from '../../layers/settlement/privyClient.js';
 import { ARC_TESTNET } from '../../layers/settlement/arcChain.js';
 
 const OUTPUT_PATH = new URL('./arc-settlement-proof.output.md', import.meta.url);
 
-type LogLine = string;
-const lines: LogLine[] = [];
+const lines: string[] = [];
 function log(line: string) {
   console.log(line);
   lines.push(line);
@@ -44,37 +53,12 @@ async function provision(config: ReturnType<typeof loadConfig>) {
     process.exit(1);
   }
   const privy = buildPrivyClient(config);
-  const capUsd = config.caps.defaultUsd;
-  const capWei = parseUnits(String(capUsd), 18).toString();
 
-  log(`provision: creating a policy capping eth_sendTransaction value at ${capUsd} USDC (${capWei} wei, native)...`);
-  const policy = await privy.policies().create({
-    version: '1.0',
-    name: `float-arc-cap-${capUsd}usd`,
-    chain_type: 'ethereum',
-    owner_id: config.raw.PRIVY_KEY_QUORUM_ID,
-    rules: [
-      {
-        name: 'allow-under-cap',
-        method: 'eth_sendTransaction',
-        action: 'ALLOW',
-        conditions: [{ field_source: 'ethereum_transaction', field: 'value', operator: 'lte', value: capWei }],
-      },
-      {
-        name: 'deny-over-cap',
-        method: 'eth_sendTransaction',
-        action: 'DENY',
-        conditions: [{ field_source: 'ethereum_transaction', field: 'value', operator: 'gt', value: capWei }],
-      },
-    ],
-  });
-  log(`provision: policy ${policy.id} created`);
-
+  log('provision: creating a Privy server wallet on Arc (no policy attached -- see R6 verdict above)...');
   const wallet = await privy.wallets().create({
     chain_type: 'ethereum',
     display_name: 'float-arc-settlement',
     owner_id: config.raw.PRIVY_KEY_QUORUM_ID,
-    policy_ids: [policy.id],
   });
   log(`provision: wallet ${wallet.id} created at address ${wallet.address}`);
   log('');
@@ -96,6 +80,7 @@ async function proof(config: ReturnType<typeof loadConfig>) {
 
   const deps = { config, signalStore, digestStore };
   const address = config.raw.PRIVY_WALLET_ADDRESS as `0x${string}`;
+  const walletId = config.raw.PRIVY_WALLET_ID as string;
 
   const publicClient = createPublicClient({ chain: ARC_TESTNET, transport: http(ARC_TESTNET.rpcUrls.default.http[0]) });
   const balance = await publicClient.getBalance({ address });
@@ -106,31 +91,63 @@ async function proof(config: ReturnType<typeof loadConfig>) {
   const uncited = await transferUsdc({ to: address, amount: '0.01', signal_ref: 'sig_never_existed' }, deps);
   log(JSON.stringify(uncited));
 
-  const capUsd = config.caps.defaultUsd;
-  const overCapAmount = String(capUsd + 1);
-
   if (balance === 0n) {
     log('');
     log(`proof: balance is 0 -- fund ${address} via https://faucet.circle.com to run the funded checks.`);
     log('--- 2. awaiting_device (over-float; 0 balance means everything over-floats) ---');
     const overFloat = await transferUsdc({ to: address, amount: '0.01', signal_ref: signal.id }, deps);
     log(JSON.stringify(overFloat));
-    log('proof: over-cap and successful-transfer checks require funding -- stopping here.');
+    log('proof: R6 evidence and successful-transfer checks require funding -- stopping here.');
     return;
   }
 
+  // --- R6 evidence: attach a policy allowing amounts well under the real
+  // cap, then attempt a trivially compliant transfer. A correct policy
+  // engine would ALLOW this. Privy denies it, sourced verbatim through
+  // transferUsdc()'s own PrivyAPIError classification (findPrivyError() in
+  // layers/settlement/transferUsdc.ts unwraps viem's TransactionExecutionError
+  // wrapper to recover it) -- proving the denial is Privy's, not ours, and
+  // that it does not discriminate by the rule's own conditions.
   log('');
-  log(`--- 2. provider_policy_denied (over-cap: ${overCapAmount} USDC > ${capUsd} USDC cap) ---`);
-  if (balance < parseUnits(overCapAmount, 18)) {
-    log(`proof: balance too low to reach the over-cap check (need > ${overCapAmount} USDC) -- fund more and re-run.`);
+  log('--- R6 evidence: policy engine on Arc (see verdict in the file header) ---');
+  const privy = buildPrivyClient(config);
+  const authorizationContext = buildAuthorizationContext(config);
+  const capWei = parseUnits('50', 18).toString();
+  const evidencePolicy = await privy.policies().create({
+    version: '1.0',
+    name: `float-arc-r6-evidence-${Date.now()}`,
+    chain_type: 'ethereum',
+    owner_id: config.raw.PRIVY_KEY_QUORUM_ID as string,
+    rules: [
+      {
+        name: 'allow-under-50usd',
+        method: 'eth_sendTransaction',
+        action: 'ALLOW',
+        conditions: [{ field_source: 'ethereum_transaction', field: 'value', operator: 'lte', value: capWei }],
+      },
+    ],
+  });
+  log(`proof: attaching policy ${evidencePolicy.id} (ALLOW <= 50 USDC) and attempting a trivially compliant 0.1 USDC transfer...`);
+  await privy.wallets().update(walletId, { policy_ids: [evidencePolicy.id], authorization_context: authorizationContext });
+  const shouldHaveBeenAllowed = await transferUsdc({ to: address, amount: '0.1', signal_ref: signal.id }, deps);
+  log(JSON.stringify(shouldHaveBeenAllowed));
+  if ('denied' in shouldHaveBeenAllowed && shouldHaveBeenAllowed.reason === 'provider_policy_denied') {
+    log('proof: CONFIRMED -- Privy denied a compliant, well-under-cap transfer. The policy engine does not discriminate on Arc.');
   } else {
-    const overCap = await transferUsdc({ to: address, amount: overCapAmount, signal_ref: signal.id }, deps);
-    log(JSON.stringify(overCap));
+    log('proof: UNEXPECTED -- the compliant transfer was not denied by Privy. R6 verdict above may need revisiting.');
   }
+
+  log(`proof: detaching the policy permanently (per the R6 fallback, the wallet carries no Privy policy)...`);
+  await privy.wallets().update(walletId, { policy_ids: [], authorization_context: authorizationContext });
+
+  log('');
+  log('--- 2. ceiling_exceeded (application-level float cap, no Privy policy involved) ---');
+  const overCap = await transferUsdc({ to: address, amount: '51', signal_ref: signal.id }, deps);
+  log(JSON.stringify(overCap));
 
   log('');
   log('--- 3. real settlement (signal-cited, in-cap, in-float) ---');
-  const settled = await transferUsdc({ to: address, amount: '0.01', signal_ref: signal.id }, deps);
+  const settled = await transferUsdc({ to: address, amount: '0.5', signal_ref: signal.id }, deps);
   log(JSON.stringify(settled));
 
   log('');

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { parseUnits } from 'viem';
-import { AuthenticationError } from '@privy-io/node';
+import { parseUnits, TransactionExecutionError } from 'viem';
+import { AuthenticationError, PermissionDeniedError } from '@privy-io/node';
 import { transferUsdc, type SettlementDeps } from '../transferUsdc.js';
 import { InMemorySignalStore } from '../../../src/contracts.js';
 import { InMemorySignalDigestStore, digestResult } from '../../perception/signalDigest.js';
@@ -91,6 +91,39 @@ describe('transferUsdc', () => {
       denied: true,
       reason: 'provider_policy_denied',
       detail: 'Privy 401: policy rejected transaction',
+    });
+  });
+
+  it('unwraps a PrivyAPIError even when viem wraps it in a TransactionExecutionError', async () => {
+    const apiError = new PermissionDeniedError(403, { error: 'RPC request denied due to policy violation', code: 'policy_violation' }, 'denied', new Headers());
+    const wrapped = new TransactionExecutionError(apiError as unknown as import('viem').BaseError, {
+      account: null,
+      to: '0xabc',
+      value: 1n,
+    });
+    const { deps, signalId } = makeDeps({
+      sendTransactionImpl: async () => {
+        throw wrapped;
+      },
+    });
+    const result = await transferUsdc({ to: '0xabc', amount: '1', signal_ref: signalId }, deps);
+    expect(result).toMatchObject({ denied: true, reason: 'provider_policy_denied' });
+    if (!('denied' in result)) throw new Error('expected a denial');
+    expect(result.detail).toContain('policy_violation');
+  });
+
+  it('refuses amounts over the float cap with ceiling_exceeded, without ever calling Privy', async () => {
+    const { deps, signalId } = makeDeps({
+      config: loadConfig({ ...PRIVY_ENV, FLOAT_CAP_DEFAULT_USD: '10' }),
+      sendTransactionImpl: async () => {
+        throw new Error('must not be called once the app-level cap already refused');
+      },
+    });
+    const result = await transferUsdc({ to: '0xabc', amount: '11', signal_ref: signalId }, deps);
+    expect(result).toEqual({
+      denied: true,
+      reason: 'ceiling_exceeded',
+      detail: 'requested 11 USDC exceeds the 10 USDC per-transfer float cap',
     });
   });
 

@@ -3,8 +3,16 @@
 // raw Arc private key. Native currency on Arc IS USDC (18 decimals,
 // confirmed against docs.arc.io), so a transfer is a plain native-value
 // eth_sendTransaction, never an ERC-20 call.
+//
+// R6 (rail-proved live, see demo/proofs/): a Privy policy attached to this
+// wallet denies every eth_sendTransaction on Arc unconditionally, regardless
+// of the rule's own conditions -- so it cannot be used as a discriminating
+// per-transaction cap. Per the ticket's own fallback, the wallet carries no
+// Privy policy; the float cap is enforced here as `ceiling_exceeded`, and
+// `provider_policy_denied` stays wired for a genuine Privy refusal for any
+// other reason (it is never synthesized).
 
-import { createPublicClient, createWalletClient, formatUnits, http, parseUnits } from 'viem';
+import { BaseError, createPublicClient, createWalletClient, formatUnits, http, parseUnits } from 'viem';
 import { PrivyAPIError, PrivyClient } from '@privy-io/node';
 import { createViemAccount } from '@privy-io/node/viem';
 import { denied, ok, type Provenance, type SignalStore, type ToolResult } from '../../src/contracts.js';
@@ -53,17 +61,33 @@ async function realSendTransaction(
   return walletClient.sendTransaction({ to, value });
 }
 
+/** viem's `sendTransaction` wraps whatever the account's `signTransaction`
+ * throws (a real `PrivyAPIError` when Privy's API rejects the request) inside
+ * its own `TransactionExecutionError` -- so a naive `instanceof PrivyAPIError`
+ * on the caught error misses it entirely. `BaseError.walk` unwraps viem's
+ * `cause` chain to find the real error underneath. */
+function findPrivyError(err: unknown): PrivyAPIError | null {
+  if (err instanceof PrivyAPIError) return err;
+  if (err instanceof BaseError) {
+    const found = err.walk((e) => e instanceof PrivyAPIError);
+    if (found instanceof PrivyAPIError) return found;
+  }
+  return null;
+}
+
 /** A Privy refusal must be visibly Privy's -- that is the entire point of the
- * integration, so this only fires on a real `PrivyAPIError` thrown by the SDK,
- * never a denial we synthesize ourselves. Returns null for anything else
- * (network errors, etc.), which the caller reports as `deployment_unavailable`. */
+ * integration, so this only fires on a real `PrivyAPIError` (including one
+ * wrapped by viem), never a denial we synthesize ourselves. Returns null for
+ * anything else (network errors, etc.), which the caller reports as
+ * `deployment_unavailable`. */
 function extractPrivyPolicyDenial(err: unknown): string | null {
-  if (!(err instanceof PrivyAPIError)) return null;
-  const status = 'status' in err ? (err as { status?: number }).status : undefined;
-  const body = 'error' in err ? (err as { error?: unknown }).error : undefined;
+  const privyErr = findPrivyError(err);
+  if (!privyErr) return null;
+  const status = 'status' in privyErr ? (privyErr as { status?: number }).status : undefined;
+  const body = 'error' in privyErr ? (privyErr as { error?: unknown }).error : undefined;
   const bodyMessage =
     body && typeof body === 'object' && 'message' in body ? String((body as { message: unknown }).message) : null;
-  return `Privy ${status ?? 'refusal'}: ${bodyMessage ?? err.message}`;
+  return `Privy ${status ?? 'refusal'}: ${bodyMessage ?? JSON.stringify(body) ?? privyErr.message}`;
 }
 
 export async function transferUsdc(
@@ -110,6 +134,24 @@ export async function transferUsdc(
     return denied(
       'deployment_unavailable',
       'Privy server wallet not configured -- need PRIVY_APP_ID, PRIVY_APP_SECRET, PRIVY_AUTHORIZATION_KEY, PRIVY_WALLET_ID and PRIVY_WALLET_ADDRESS',
+    );
+  }
+
+  // R6 (rail-proved, see demo/proofs/arc-settlement-proof.output.md): Privy's
+  // policy engine does receive and evaluate requests for a wallet transacting
+  // on Arc -- a denial from it is genuinely sourced from Privy, not our own
+  // pre-check -- but it denies every eth_sendTransaction unconditionally once
+  // ANY policy is attached, regardless of the rule's own value/chain_id
+  // conditions or whether the request actually violates them. That is not
+  // usable as a discriminating cap, so per the ticket's own fallback the
+  // per-transaction float cap is enforced HERE, at the application layer,
+  // exactly as the (Hedera) policy layer enforces its ceilings -- the wallet
+  // itself carries no Privy policy at all (see the provisioning script).
+  const capWei = parseUnits(String(deps.config.caps.defaultUsd), 18);
+  if (amountWei > capWei) {
+    return denied(
+      'ceiling_exceeded',
+      `requested ${args.amount} USDC exceeds the ${deps.config.caps.defaultUsd} USDC per-transfer float cap`,
     );
   }
 
