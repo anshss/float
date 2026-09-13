@@ -62,11 +62,17 @@ describe('src/index.ts entrypoint -- signal handling and port-in-use startup', (
 
     const pid = first.transport.pid;
     expect(pid).toBeTruthy();
+    // Wait for the child's own exit (not a fixed sleep -- how long SIGTERM
+    // takes to actually close the listener varies a lot under CI load) so
+    // the second start below never races a listener that hasn't closed yet.
+    const exited = new Promise<void>((resolve) => {
+      first.transport.onclose = () => resolve();
+    });
     process.kill(pid!, 'SIGTERM');
     // `client.close()` in afterEach would race the process already exiting;
     // drop it from the cleanup list now that we're killing it ourselves.
     clients.pop();
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await exited;
 
     const second = connectClient(port);
     try {
