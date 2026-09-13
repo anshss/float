@@ -2,3 +2,5 @@ node_modules/
 dist/
 .env
 .env.local
+.privy-auth.pem
+*.pem
