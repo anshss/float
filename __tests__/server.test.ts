@@ -59,10 +59,6 @@ describe('float-mcp server (in-process MCP client)', () => {
   });
 
   const stubTools: Array<[string, Record<string, string>]> = [
-    ['compare_markets', { schema_family: 'lending' }],
-    ['query_position', { protocol: 'aave-v3-ethereum', address: '0xabc' }],
-    ['counterparty_risk', { address: '0xabc' }],
-    ['spend_history', { agent_id: 'agent-1' }],
     ['grant_budget', { child_id: 'child-1', ceiling: '10', scope: 'lending' }],
     ['pay', { url: 'https://example.com', max: '5' }],
     ['transfer_usdc', { to: '0xabc', amount: '1', signal_ref: 'sig_1' }],
@@ -73,6 +69,25 @@ describe('float-mcp server (in-process MCP client)', () => {
     const result = await client.callTool({ name, arguments: args });
     const body = parseTextResult(result);
     expect(body).toEqual({ denied: true, reason: 'deployment_unavailable', detail: 'not implemented' });
+  });
+
+  // compare_markets, query_position, counterparty_risk, spend_history are
+  // implemented for real by C2 (see layers/perception/__tests__/tools.test.ts
+  // for full coverage) — here we only check the "no key configured" seam
+  // still returns a structured denial through the live MCP protocol.
+  const perceptionTools: Array<[string, Record<string, string>]> = [
+    ['compare_markets', { schema_family: 'lending' }],
+    ['query_position', { protocol: 'aave-v3-ethereum', address: '0xabc' }],
+    ['counterparty_risk', { address: '0xabc' }],
+    ['spend_history', { agent_id: 'agent-1' }],
+  ];
+
+  it.each(perceptionTools)('%s denies without configuration, never throws', async (name, args) => {
+    await connect(loadConfig({}));
+    const result = await client.callTool({ name, arguments: args });
+    const body = parseTextResult(result);
+    expect(body.denied).toBe(true);
+    expect(body.reason).toBe('deployment_unavailable');
   });
 
   it('confirm_pending() (no args) returns a structured denial', async () => {

@@ -1,0 +1,33 @@
+{
+  "_source": "Hand-built per Hedera Mirror Node REST API docs (GET /api/v1/topics/{id}/messages) field shape. NOT a live capture: no HCS audit topic exists yet (lands with #3's grant/spend writer). A live empty topic on mainnet returns {\"messages\":[],\"links\":{\"next\":null}}, confirming the envelope; the per-message fields below (consensus_timestamp, message, sequence_number, payer_account_id, topic_id, running_hash, running_hash_version) are the documented Mirror Node message schema.",
+  "messages": [
+    {
+      "consensus_timestamp": "1700000000.000000001",
+      "topic_id": "0.0.900001",
+      "message": "eyJ2IjoxLCJraW5kIjoic3BlbmQiLCJhZ2VudF9pZCI6ImFnZW50LTEiLCJ0cyI6IjIwMjYtMDktMTNUMDA6MDA6MDBaIiwic2VydmljZSI6ImNvbXBhcmVfbWFya2V0cyIsImFtb3VudCI6IjIuNTAiLCJ0eCI6IjAuMC45MDAwMDJAMTcwMDAwMDAwMC4wMDAwMDAwMDIifQ==",
+      "sequence_number": 1,
+      "payer_account_id": "0.0.900002",
+      "running_hash": "3q2+7w==",
+      "running_hash_version": 3
+    },
+    {
+      "consensus_timestamp": "1700000000.000000002",
+      "topic_id": "0.0.900001",
+      "message": "eyJ2IjoxLCJraW5kIjoiZGVuaWFsIiwiYWdlbnRfaWQiOiJhZ2VudC0xIiwidHMiOiIyMDI2LTA5LTEzVDAwOjAxOjAwWiIsInJlYXNvbiI6ImNlaWxpbmdfZXhjZWVkZWQiLCJzZXJ2aWNlIjoicGF5In0=",
+      "sequence_number": 2,
+      "payer_account_id": "0.0.900002",
+      "running_hash": "3q2+8g==",
+      "running_hash_version": 3
+    },
+    {
+      "consensus_timestamp": "1700000000.000000003",
+      "topic_id": "0.0.900001",
+      "message": "eyJ2IjoxLCJraW5kIjoic3BlbmQiLCJhZ2VudF9pZCI6ImFnZW50LTIiLCJ0cyI6IjIwMjYtMDktMTNUMDA6MDI6MDBaIiwic2VydmljZSI6InF1ZXJ5X3Bvc2l0aW9uIiwiYW1vdW50IjoiMC41MCIsInR4IjoiMC4wLjkwMDAwM0AxNzAwMDAwMDAwLjAwMDAwMDAwMyJ9",
+      "sequence_number": 3,
+      "payer_account_id": "0.0.900003",
+      "running_hash": "3q2+9w==",
+      "running_hash_version": 3
+    }
+  ],
+  "links": { "next": null }
+}
