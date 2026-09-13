@@ -1,9 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import { spawn } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
+
+// Mirrors layers/policy/state.ts's own (unexported) LIVE_LOCK_DIR name --
+// polling for this directory on disk is ground truth for "the lock is
+// actually held", unlike a stdio marker from the child (which could in
+// principle be delayed by pipe buffering one more hop than a direct fs
+// check on the same filesystem this test itself is running on).
+const LIVE_LOCK_DIR_NAME = '.hedera.live-lock';
+
+async function waitFor(predicate: () => boolean, timeoutMs: number, describeFailure: string): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!predicate()) {
+    if (Date.now() > deadline) throw new Error(`timed out waiting for: ${describeFailure}`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
 
 // #21: proves, with two REAL concurrent OS processes racing on one shared
 // state directory (not two in-process calls — the incident was two
@@ -57,11 +72,13 @@ describe('bootstrap state lock closes the concurrent-mint race (#21)', () => {
   it('a live-run lock held by one process fails the second fast, naming the holder', async () => {
     const stateDir = mkdtempSync(join(tmpdir(), 'float-mcp-live-lock-'));
     try {
-      // Wait for the first probe's own "I actually hold the lock now" signal
-      // rather than a fixed sleep — a flat delay races real process-spawn
-      // time under CI load (node/tsx startup routinely exceeds tens of ms
-      // under load), and a second probe that wins that race falsifies the
-      // "fails fast" claim this test exists to prove.
+      // Wait for the lock directory to actually exist on disk rather than a
+      // fixed sleep — a flat delay races real process-spawn time under CI
+      // load (node/tsx startup routinely exceeds tens of ms under load), and
+      // a second probe that wins that race falsifies the "fails fast" claim
+      // this test exists to prove. Polling the filesystem directly (not a
+      // stdio marker from the child) is ground truth: no pipe-buffering hop
+      // between "the lock is held" and this test observing it.
       const firstChild = spawn(tsxBin, [probePath, 'live-lock', '300'], {
         env: { ...process.env, VITEST: '', FLOAT_STATE_DIR: stateDir },
       });
@@ -75,16 +92,8 @@ describe('bootstrap state lock closes the concurrent-mint race (#21)', () => {
           resolve(JSON.parse(firstStdout));
         });
       });
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error(`first probe never signalled LOCK_ACQUIRED (stderr so far: ${firstStderr})`)), 5000);
-        firstChild.stderr.on('data', function check() {
-          if (firstStderr.includes('LOCK_ACQUIRED')) {
-            clearTimeout(timer);
-            firstChild.stderr.off('data', check);
-            resolve();
-          }
-        });
-      });
+      const lockDirPath = join(stateDir, LIVE_LOCK_DIR_NAME);
+      await waitFor(() => existsSync(lockDirPath), 5000, `${lockDirPath} to exist (stderr so far: ${firstStderr})`);
 
       const second = await runProbe('live-lock', stateDir, 0);
 
