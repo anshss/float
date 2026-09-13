@@ -13,9 +13,6 @@ import type { FloatConfig } from '../../src/config.js';
 import { executeAndGetReceipt, getOperator, getOperatorClient } from './hedera.js';
 import { loadState, saveState, type AgentAccount, type PolicyState } from './state.js';
 
-const TREASURY_INITIAL_HBAR = 5;
-const AGENT_INITIAL_HBAR = 2;
-
 async function createFundedAccount(config: FloatConfig, initialHbar: number): Promise<AgentAccount> {
   const client = getOperatorClient(config);
   const key = PrivateKey.generateECDSA();
@@ -41,7 +38,7 @@ export async function ensureTreasury(config: FloatConfig): Promise<AgentAccount>
     return placeholder;
   }
 
-  const treasury = await createFundedAccount(config, TREASURY_INITIAL_HBAR);
+  const treasury = await createFundedAccount(config, config.funding.treasuryInitialHbar);
   state.treasury = treasury;
   saveState(state);
   console.error(`[float-mcp/policy] created treasury account ${treasury.accountId} (allowance owner)`);
@@ -58,7 +55,7 @@ export async function ensureAgentAccount(config: FloatConfig, agentId: string): 
     return { accountId: `dry_run.agent.${agentId}`, privateKey: '' };
   }
 
-  const account = await createFundedAccount(config, AGENT_INITIAL_HBAR);
+  const account = await createFundedAccount(config, config.funding.agentInitialHbar);
   state.agents[agentId] = account;
   saveState(state);
   console.error(`[float-mcp/policy] created spender account for agent "${agentId}": ${account.accountId}`);

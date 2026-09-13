@@ -22,7 +22,26 @@ import { writeAudit } from './audit.js';
 import { ensureAgentAccount, ensureTreasury } from './bootstrap.js';
 import { executeAndGetReceipt, getOperatorClient } from './hedera.js';
 import { requestLedgerGrantSignature } from './ledger-signer.js';
+import { fetchHbarAllowances } from './mirror.js';
 import { loadState, saveState, type PolicyRecord } from './state.js';
+
+/** #17: `CRYPTOAPPROVEALLOWANCE` is 0.666 HBAR, the single most expensive
+ * repeating operation this layer performs. Reads the treasury's real
+ * allowances back from the mirror node and skips the approval when one
+ * already covers `ceilingHbar` exactly — only a changed ceiling (or a
+ * mirror-node read failure, where we can't tell) re-approves. */
+async function allowanceAlreadyCoversCeiling(
+  config: FloatConfig,
+  treasuryAccountId: string,
+  spenderAccountId: string,
+  ceilingHbar: number,
+): Promise<boolean> {
+  const baseUrl = config.raw.HEDERA_MIRROR_NODE_URL ?? 'https://testnet.mirrornode.hedera.com';
+  const result = await fetchHbarAllowances(treasuryAccountId, { baseUrl });
+  if (!result.ok) return false;
+  const ceilingTinybar = new Hbar(ceilingHbar).toTinybars().toNumber();
+  return result.allowances.some((a) => a.spender === spenderAccountId && a.grantedTinybar === ceilingTinybar);
+}
 
 export const ROOT_AGENT_ID = 'root';
 
@@ -90,18 +109,28 @@ export async function grantBudget(config: FloatConfig, input: GrantBudgetInput):
 
   let allowanceTx: string | null = null;
   if (!config.dryRun) {
-    const client = getOperatorClient(config);
-    const treasuryKey = PrivateKey.fromStringDer(treasury.privateKey);
-    const tx = new AccountAllowanceApproveTransaction()
-      .approveHbarAllowance(
-        AccountId.fromString(treasury.accountId),
-        AccountId.fromString(child.accountId),
-        new Hbar(ceilingHbar),
-      )
-      .freezeWith(client);
-    const signed = await tx.sign(treasuryKey);
-    const response = await executeAndGetReceipt(client, signed);
-    allowanceTx = response.transactionId.toString();
+    // Carry the previous grant's tx id forward when we skip re-approving —
+    // there's no new tx to report, but the old one is still the one in force.
+    allowanceTx = loadState().policies[input.childId]?.allowanceTx ?? null;
+    const alreadyCovered = await allowanceAlreadyCoversCeiling(config, treasury.accountId, child.accountId, ceilingHbar);
+    if (alreadyCovered) {
+      console.error(
+        `[float-mcp/policy] allowance for "${input.childId}" already covers ${ceilingHbar} HBAR — skipping CRYPTOAPPROVEALLOWANCE`,
+      );
+    } else {
+      const client = getOperatorClient(config);
+      const treasuryKey = PrivateKey.fromStringDer(treasury.privateKey);
+      const tx = new AccountAllowanceApproveTransaction()
+        .approveHbarAllowance(
+          AccountId.fromString(treasury.accountId),
+          AccountId.fromString(child.accountId),
+          new Hbar(ceilingHbar),
+        )
+        .freezeWith(client);
+      const signed = await tx.sign(treasuryKey);
+      const response = await executeAndGetReceipt(client, signed);
+      allowanceTx = response.transactionId.toString();
+    }
   }
 
   const state = loadState();
