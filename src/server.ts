@@ -68,18 +68,34 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
     );
   }
 
+  // #14: the effective mode is an explicit opt-in (DRY_RUN=0 or FLOAT_LIVE=1
+  // — see src/config.ts), never inferred from which env vars happen to be
+  // set, so this is the one place a human watching the process (dev,
+  // rehearsal, the demo itself) sees which one they got — loudly, at
+  // startup, not discovered mid-narration. A judge/operator can also read
+  // this back live via float_status()'s `mode` field below.
+  const hederaOperatorReady = !!(config.raw.HEDERA_OPERATOR_ID && config.raw.HEDERA_OPERATOR_KEY);
+  if (config.dryRun) {
+    console.error('float-mcp: mode = STUBBED (DRY_RUN) — every chain write returns a synthetic result. Set DRY_RUN=0 or FLOAT_LIVE=1 to go live.');
+  } else {
+    console.error('float-mcp: mode = LIVE — chain writes are REAL and will hit testnet.');
+    if (!hederaOperatorReady) {
+      console.error('float-mcp: WARNING — LIVE mode requested but HEDERA_OPERATOR_ID/HEDERA_OPERATOR_KEY are not set; Hedera writes will fail.');
+    }
+  }
+
   // float_status() — C1, implemented for real.
   server.registerTool(
     'float_status',
     {
       title: 'Float status',
       description:
-        'Reports Float server health: which config layers are configured, active caps, DRY_RUN state, pending confirmations, lockfile verification status, demo-core deployment health, and the policy layer\'s ground-truth Hedera state (treasury/topic ids, per-agent ceilings and live allowance remaining). Never returns key material.',
+        'Reports Float server health: which config layers are configured, the effective LIVE/STUBBED mode (explicit opt-in only, never inferred from env-var presence — #14), active caps, pending confirmations, lockfile verification status, demo-core deployment health, and the policy layer\'s ground-truth Hedera state (treasury/topic ids, per-agent ceilings and live allowance remaining). Never returns key material.',
     },
     async () => {
       const lockfile = verifyLockfile();
-      // `config.configured.hedera` is env-var presence only (it also gates
-      // the DRY_RUN safety default in src/config.ts — left untouched here).
+      // `config.configured.hedera` is env-var presence only, and no longer
+      // feeds `config.dryRun` (#14 — see src/config.ts's dryRun doc comment).
       // The policy layer self-bootstraps treasury/topic ids into its own
       // state rather than into env, so float_status reports ground truth —
       // ids and live allowance remaining, not env-var presence — in the
@@ -89,6 +105,10 @@ export function createFloatServer(deps: Partial<FloatServerDeps> = {}): FloatSer
       return toCallToolResult(
         ok({
           dryRun: config.dryRun,
+          // The effective mode a judge/operator should trust over any single
+          // flag: STUBBED unless an explicit opt-in (DRY_RUN=0/FLOAT_LIVE=1)
+          // was made — see src/config.ts and the startup log above.
+          mode: config.dryRun ? ('stubbed' as const) : ('live' as const),
           configured: { ...config.configured, hedera: hedera.configured },
           caps: config.caps,
           pendingConfirmations: [] as string[],
