@@ -64,6 +64,35 @@ describe('config', () => {
     expect(config.caps.hotBalanceUsd).toBe(500);
   });
 
+  it('#14: the demo-shaped configuration (every write-layer env var set, no explicit opt-in) still defaults to stubbed — env-var presence alone never flips to live', () => {
+    const config = loadConfig({
+      HEDERA_OPERATOR_ID: '0.0.1',
+      HEDERA_OPERATOR_KEY: 'k',
+      HEDERA_TREASURY_ID: '0.0.2',
+      HEDERA_TREASURY_KEY: 'k',
+      HEDERA_TOPIC_ID: '0.0.3',
+      PRIVY_APP_ID: 'a',
+      PRIVY_APP_SECRET: 's',
+      PRIVY_WALLET_ID: 'w',
+      LEDGER_CLI_BIN: '/usr/local/bin/ledger',
+    });
+    expect(config.configured.hedera).toBe(true);
+    expect(config.configured.privy).toBe(true);
+    expect(config.configured.ledger).toBe(true);
+    expect(config.dryRun).toBe(true);
+  });
+
+  it('#14: FLOAT_LIVE=1 is an explicit opt-in to live when DRY_RUN is unset', () => {
+    expect(loadConfig({ FLOAT_LIVE: '1' }).dryRun).toBe(false);
+    expect(loadConfig({ FLOAT_LIVE: 'true' }).dryRun).toBe(false);
+    expect(loadConfig({}).dryRun).toBe(true);
+  });
+
+  it('#14: an explicit DRY_RUN always wins over FLOAT_LIVE, either direction', () => {
+    expect(loadConfig({ DRY_RUN: '1', FLOAT_LIVE: '1' }).dryRun).toBe(true);
+    expect(loadConfig({ DRY_RUN: '0', FLOAT_LIVE: '0' }).dryRun).toBe(false);
+  });
+
   it('never returns key material fields verbatim in configured/caps output', () => {
     const config = loadConfig({ HEDERA_OPERATOR_KEY: 'super-secret-key' });
     const publicShape = { dryRun: config.dryRun, configured: config.configured, caps: config.caps };

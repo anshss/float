@@ -23,6 +23,13 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => v === undefined ? undefined : v === '1' || v.toLowerCase() === 'true'),
+  // Alternate explicit live opt-in, read only when DRY_RUN itself is unset
+  // (see loadConfig below) — named separately from DRY_RUN=0 so an operator
+  // reaching for "make it live" doesn't have to remember DRY_RUN's polarity.
+  FLOAT_LIVE: z
+    .string()
+    .optional()
+    .transform((v) => v !== undefined && (v === '1' || v.toLowerCase() === 'true')),
 });
 
 export type RawEnv = z.infer<typeof envSchema>;
@@ -31,15 +38,36 @@ export type LayerName = 'graph' | 'hedera' | 'privy' | 'ledger';
 
 export type FloatConfig = {
   raw: RawEnv;
-  /** DRY_RUN defaults to true whenever a chain-writing layer's creds are
-   * absent, so demo/dev never accidentally sends a real transaction. */
+  /** Whether chain writes are stubbed. `#14`: this is an EXPLICIT opt-in
+   * only — `DRY_RUN=0` or `FLOAT_LIVE=1` — never inferred from which env
+   * vars happen to be set. The old formula gated this on
+   * `HEDERA_TREASURY_ID`/`_KEY`/`HEDERA_TOPIC_ID`, which the policy layer
+   * never populates (it bootstraps those into its own state file instead —
+   * see layers/policy/state.ts and #11), so the default could never resolve
+   * to live in normal operation, AND — had those five env vars ever all
+   * been set together — would have silently flipped to live with no
+   * deliberate choice behind it. Defaulting to stubbed is the safe failure;
+   * defaulting to live because some set of env vars happens to be present
+   * is not, so neither mode is reachable by env-var presence alone anymore.
+   * Ground-truth write-capability (real creds, bootstrapped state) is
+   * reported separately — see `layers/policy/status.ts` (#11) and the
+   * startup log in `src/server.ts` (#14) — rather than folded back into
+   * this boolean, so an explicit opt-in always does what it says instead of
+   * being silently overridden by a capability snapshot (which would also
+   * deadlock a from-scratch first live bootstrap: nothing is "capable" yet
+   * on the very first live run, since state doesn't exist until one lands). */
   dryRun: boolean;
   caps: {
     defaultUsd: number;
     hotBalanceUsd: number;
   };
-  /** Which config layers are fully present, for `float_status` and for tools
-   * to check before doing real work. */
+  /** Which config layers have every relevant env var present — informational
+   * (`float_status`'s summary, `layers/perception/tools.ts`'s gate on
+   * `configured.graph`) only. As of #14 this no longer feeds `dryRun`:
+   * `configured.hedera` in particular requires `HEDERA_TREASURY_ID`/`_KEY`/
+   * `HEDERA_TOPIC_ID`, which the policy layer never sets as env vars, so it
+   * reads false in normal operation even once real writes are live — see
+   * `layers/policy/status.ts` for the ground-truth version of this signal. */
   configured: Record<LayerName, boolean>;
 };
 
@@ -62,8 +90,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): FloatConfig {
     ledger: !!parsed.LEDGER_CLI_BIN,
   };
 
-  const anyWriteLayerMissing = !configured.hedera || !configured.privy || !configured.ledger;
-  const dryRun = parsed.DRY_RUN ?? anyWriteLayerMissing;
+  // `#14`: no inference from `configured` here — see the `dryRun` doc comment
+  // on FloatConfig above for why. An explicit DRY_RUN always wins outright;
+  // otherwise FLOAT_LIVE=1 is the one alternate opt-in; anything else stubs.
+  const dryRun = parsed.DRY_RUN !== undefined ? parsed.DRY_RUN : !parsed.FLOAT_LIVE;
 
   return {
     raw: parsed,

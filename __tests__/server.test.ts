@@ -91,6 +91,36 @@ describe('float-mcp server (in-process MCP client)', () => {
     expect(JSON.stringify(body)).not.toContain('unused-in-tests');
   });
 
+  it('#14: demo-shaped configuration (real creds, bootstrapped state, no explicit opt-in) resolves to stubbed, not live by accident', async () => {
+    resetStateForTests();
+    const state = loadState();
+    state.treasury = { accountId: '0.0.999001', privateKey: 'unused-in-tests' };
+    state.topicId = '0.0.999002';
+    saveState(state);
+
+    // Real operator creds present, treasury/topic already bootstrapped in
+    // state — exactly the shape #14 says must NOT silently resolve to live.
+    await connect(loadConfig({ HEDERA_OPERATOR_ID: '0.0.1', HEDERA_OPERATOR_KEY: 'k' }));
+    const result = await client.callTool({ name: 'float_status', arguments: {} });
+    const body = parseTextResult(result);
+    expect(body.data.dryRun).toBe(true);
+    expect(body.data.mode).toBe('stubbed');
+  });
+
+  it('#14: the same demo-shaped configuration goes live only with an explicit opt-in', async () => {
+    resetStateForTests();
+    const state = loadState();
+    state.treasury = { accountId: '0.0.999001', privateKey: 'unused-in-tests' };
+    state.topicId = '0.0.999002';
+    saveState(state);
+
+    await connect(loadConfig({ DRY_RUN: '0', HEDERA_OPERATOR_ID: '0.0.1', HEDERA_OPERATOR_KEY: 'k' }));
+    const result = await client.callTool({ name: 'float_status', arguments: {} });
+    const body = parseTextResult(result);
+    expect(body.data.dryRun).toBe(false);
+    expect(body.data.mode).toBe('live');
+  });
+
   const stubTools: Array<[string, Record<string, string>]> = [
     ['pay', { url: 'https://example.com', max: '5' }],
     ['transfer_usdc', { to: '0xabc', amount: '1', signal_ref: 'sig_1' }],
