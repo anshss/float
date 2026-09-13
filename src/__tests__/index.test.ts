@@ -30,8 +30,16 @@ async function freePort(): Promise<number> {
 
 function connectClient(port: number): { client: Client; transport: StdioClientTransport; stderr: () => string } {
   const transport = new StdioClientTransport({
-    command: 'npx',
-    args: ['tsx', 'src/index.ts'],
+    // `node --import tsx/esm`, not `npx tsx` (as plugin/__tests__/stdio.test.ts
+    // uses to prove the real client-facing command): `npx` is a JS wrapper
+    // that on some platforms stays a real parent process rather than
+    // exec(2)-ing into the process that installs the signal handler under
+    // test here, so a signal sent to its pid never reaches the handler. This
+    // file is testing the handler itself, not the plugin's launch command
+    // (already proven elsewhere), so invoking node directly -- one process,
+    // no nesting -- is the right shape for a signal-delivery test.
+    command: process.execPath,
+    args: ['--import', 'tsx/esm', 'src/index.ts'],
     cwd: REPO_ROOT,
     env: { ...getDefaultEnvironment(), FLOAT_PAYMENTS_PORT: String(port) },
     stderr: 'pipe',
