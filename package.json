@@ -12,10 +12,14 @@
     "pin": "tsx --env-file=.env scripts/pin.ts",
     "demo:x402-rail-proof": "node demo/proofs/x402-rail-proof.mjs",
     "demo:pay-live-verify": "tsx --env-file=.env layers/payments/live-verify.ts",
-    "proof:arc": "tsx --env-file=.env demo/proofs/arc-settlement-proof.ts"
+    "demo:ledger-press": "tsx --env-file=.env layers/custody/live-verify.ts",
+    "proof:arc": "tsx --env-file=.env demo/proofs/arc-settlement-proof.ts",
+    "proof:custody": "tsx --env-file=.env demo/proofs/custody-proof.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.81.0",
+    "@ledgerhq/hw-app-eth": "^7.8.18",
+    "@ledgerhq/hw-transport-node-hid": "^6.33.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@privy-io/node": "^0.34.0",
     "@x402/core": "^2.25.0",
