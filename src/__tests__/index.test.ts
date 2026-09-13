@@ -1,6 +1,6 @@
-// #20: no signal handler at all meant Ctrl-C during rehearsal left the
-// payments listener open, so the NEXT start of the same demo collided with a
-// zombie on :4402. These two tests drive the REAL entrypoint (`src/index.ts`,
+// With no signal handler at all, Ctrl-C during rehearsal left the payments
+// listener open, so the NEXT start of the same demo collided with a zombie
+// on :4402. These two tests drive the REAL entrypoint (`src/index.ts`,
 // the exact command the plugin manifest and the demo runner both launch)
 // over a real stdio transport, not an in-process shortcut -- a signal
 // handler and a `server.listen` error path can't be exercised in-process.
