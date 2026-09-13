@@ -1,0 +1,10 @@
+{
+  "name": "float-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Float: MCP server that acts as the economic actuator for AI agents (stdio transport)",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/index.ts"
+  }
+}
